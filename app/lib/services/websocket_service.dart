@@ -20,19 +20,32 @@ enum WsEvent {
 
 WsEvent? wsEventFromString(String s) {
   switch (s) {
-    case 'new_message': return WsEvent.newMessage;
-    case 'message_deleted': return WsEvent.messageDeleted;
-    case 'user_online': return WsEvent.userOnline;
-    case 'user_offline': return WsEvent.userOffline;
-    case 'typing_start': return WsEvent.typingStart;
-    case 'typing_stop': return WsEvent.typingStop;
-    case 'message_read': return WsEvent.messageRead;
-    case 'call_offer': return WsEvent.callOffer;
-    case 'call_answer': return WsEvent.callAnswer;
-    case 'call_ice_candidate': return WsEvent.callIceCandidate;
-    case 'call_hangup': return WsEvent.callHangup;
-    case 'call_rejected': return WsEvent.callRejected;
-    default: return null;
+    case 'new_message':
+      return WsEvent.newMessage;
+    case 'message_deleted':
+      return WsEvent.messageDeleted;
+    case 'user_online':
+      return WsEvent.userOnline;
+    case 'user_offline':
+      return WsEvent.userOffline;
+    case 'typing_start':
+      return WsEvent.typingStart;
+    case 'typing_stop':
+      return WsEvent.typingStop;
+    case 'message_read':
+      return WsEvent.messageRead;
+    case 'call_offer':
+      return WsEvent.callOffer;
+    case 'call_answer':
+      return WsEvent.callAnswer;
+    case 'call_ice_candidate':
+      return WsEvent.callIceCandidate;
+    case 'call_hangup':
+      return WsEvent.callHangup;
+    case 'call_rejected':
+      return WsEvent.callRejected;
+    default:
+      return null;
   }
 }
 
@@ -97,49 +110,71 @@ class WebSocketService {
   }
 
   void sendTypingStart(String conversationId) {
-    send({'event': 'typing_start', 'data': {'conversation_id': conversationId}});
+    send({
+      'event': 'typing_start',
+      'data': {'conversation_id': conversationId}
+    });
   }
 
   void sendTypingStop(String conversationId) {
-    send({'event': 'typing_stop', 'data': {'conversation_id': conversationId}});
+    send({
+      'event': 'typing_stop',
+      'data': {'conversation_id': conversationId}
+    });
   }
 
   void sendCallOffer(String toUserId, String conversationId, String sdp) {
-    send({'event': 'call_offer', 'data': {
-      'to_user_id': toUserId,
-      'conversation_id': conversationId,
-      'sdp': sdp,
-    }});
+    send({
+      'event': 'call_offer',
+      'data': {
+        'to_user_id': toUserId,
+        'conversation_id': conversationId,
+        'sdp': sdp,
+      }
+    });
   }
 
   void sendCallAnswer(String toUserId, String conversationId, String sdp) {
-    send({'event': 'call_answer', 'data': {
-      'to_user_id': toUserId,
-      'conversation_id': conversationId,
-      'sdp': sdp,
-    }});
+    send({
+      'event': 'call_answer',
+      'data': {
+        'to_user_id': toUserId,
+        'conversation_id': conversationId,
+        'sdp': sdp,
+      }
+    });
   }
 
-  void sendIceCandidate(String toUserId, String conversationId, String candidate) {
-    send({'event': 'call_ice_candidate', 'data': {
-      'to_user_id': toUserId,
-      'conversation_id': conversationId,
-      'candidate': candidate,
-    }});
+  void sendIceCandidate(
+      String toUserId, String conversationId, String candidate) {
+    send({
+      'event': 'call_ice_candidate',
+      'data': {
+        'to_user_id': toUserId,
+        'conversation_id': conversationId,
+        'candidate': candidate,
+      }
+    });
   }
 
   void sendCallHangup(String toUserId, String conversationId) {
-    send({'event': 'call_hangup', 'data': {
-      'to_user_id': toUserId,
-      'conversation_id': conversationId,
-    }});
+    send({
+      'event': 'call_hangup',
+      'data': {
+        'to_user_id': toUserId,
+        'conversation_id': conversationId,
+      }
+    });
   }
 
   void sendCallReject(String toUserId, String conversationId) {
-    send({'event': 'call_reject', 'data': {
-      'to_user_id': toUserId,
-      'conversation_id': conversationId,
-    }});
+    send({
+      'event': 'call_reject',
+      'data': {
+        'to_user_id': toUserId,
+        'conversation_id': conversationId,
+      }
+    });
   }
 
   void disconnect() {

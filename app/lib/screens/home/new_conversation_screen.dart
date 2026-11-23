@@ -34,7 +34,10 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     try {
       final api = context.read<ApiService>();
       final users = await api.searchUsers(query.trim());
-      setState(() { _results = users; _searching = false; });
+      setState(() {
+        _results = users;
+        _searching = false;
+      });
     } catch (_) {
       setState(() => _searching = false);
     }
@@ -70,7 +73,9 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
             ),
           ),
           if (_searching)
-            const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
+            const Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator()),
           Expanded(
             child: ListView.builder(
               itemCount: _results.length,
@@ -79,9 +84,11 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
                 return ListTile(
                   leading: UserAvatar(user: user, radius: 22),
                   title: Text(user.displayName),
-                  subtitle: Text('@${user.username}', style: const TextStyle(color: AppTheme.onSurfaceMuted)),
+                  subtitle: Text('@${user.username}',
+                      style: const TextStyle(color: AppTheme.onSurfaceMuted)),
                   trailing: user.isOnline
-                      ? const Icon(Icons.circle, color: AppTheme.online, size: 10)
+                      ? const Icon(Icons.circle,
+                          color: AppTheme.online, size: 10)
                       : null,
                   onTap: () => _startConversation(user),
                 );

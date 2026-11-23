@@ -31,11 +31,16 @@ class ConversationTile extends StatelessWidget {
     final msg = conversation.lastMessage;
     if (msg == null) return '';
     switch (msg.kind) {
-      case 'voice_note': return '🎤 Voice note';
-      case 'image': return '📷 Photo';
-      case 'video': return '🎥 Video';
-      case 'file': return '📎 File';
-      default: return msg.content ?? '';
+      case 'voice_note':
+        return '🎤 Voice note';
+      case 'image':
+        return '📷 Photo';
+      case 'video':
+        return '🎥 Video';
+      case 'file':
+        return '📎 File';
+      default:
+        return msg.content ?? '';
     }
   }
 
@@ -67,7 +72,8 @@ class ConversationTile extends StatelessWidget {
                         child: Text(
                           name,
                           style: TextStyle(
-                            fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w500,
+                            fontWeight:
+                                hasUnread ? FontWeight.w600 : FontWeight.w500,
                             fontSize: 15,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -78,7 +84,9 @@ class ConversationTile extends StatelessWidget {
                           _formatTime(conversation.lastMessage!.createdAt),
                           style: TextStyle(
                             fontSize: 12,
-                            color: hasUnread ? AppTheme.primary : AppTheme.onSurfaceMuted,
+                            color: hasUnread
+                                ? AppTheme.primary
+                                : AppTheme.onSurfaceMuted,
                           ),
                         ),
                     ],
@@ -91,22 +99,31 @@ class ConversationTile extends StatelessWidget {
                           preview,
                           style: TextStyle(
                             fontSize: 13,
-                            color: hasUnread ? AppTheme.onSurface : AppTheme.onSurfaceMuted,
-                            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+                            color: hasUnread
+                                ? AppTheme.onSurface
+                                : AppTheme.onSurfaceMuted,
+                            fontWeight:
+                                hasUnread ? FontWeight.w500 : FontWeight.normal,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (hasUnread)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: const BoxDecoration(
                             color: AppTheme.primary,
                             borderRadius: BorderRadius.all(Radius.circular(10)),
                           ),
                           child: Text(
-                            conversation.unreadCount > 99 ? '99+' : '${conversation.unreadCount}',
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                            conversation.unreadCount > 99
+                                ? '99+'
+                                : '${conversation.unreadCount}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600),
                           ),
                         ),
                     ],

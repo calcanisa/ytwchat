@@ -53,7 +53,9 @@ class AuthService {
   }
 
   Future<void> _saveAuth(Map<String, dynamic> data) async {
-    await _storage.write(key: AppConstants.tokenKey, value: data['token'] as String);
-    await _storage.write(key: AppConstants.userIdKey, value: data['user']['id'] as String);
+    await _storage.write(
+        key: AppConstants.tokenKey, value: data['token'] as String);
+    await _storage.write(
+        key: AppConstants.userIdKey, value: data['user']['id'] as String);
   }
 }

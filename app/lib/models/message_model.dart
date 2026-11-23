@@ -2,12 +2,18 @@ enum MessageKind { text, voiceNote, image, video, file, system }
 
 MessageKind messageKindFromString(String s) {
   switch (s) {
-    case 'voice_note': return MessageKind.voiceNote;
-    case 'image': return MessageKind.image;
-    case 'video': return MessageKind.video;
-    case 'file': return MessageKind.file;
-    case 'system': return MessageKind.system;
-    default: return MessageKind.text;
+    case 'voice_note':
+      return MessageKind.voiceNote;
+    case 'image':
+      return MessageKind.image;
+    case 'video':
+      return MessageKind.video;
+    case 'file':
+      return MessageKind.file;
+    case 'system':
+      return MessageKind.system;
+    default:
+      return MessageKind.text;
   }
 }
 

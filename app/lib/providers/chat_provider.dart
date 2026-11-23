@@ -136,7 +136,8 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void _updateConversationLastMessage(MessageModel message) {
-    final idx = _conversations.indexWhere((c) => c.id == message.conversationId);
+    final idx =
+        _conversations.indexWhere((c) => c.id == message.conversationId);
     if (idx != -1) {
       final conv = _conversations[idx];
       _conversations[idx] = conv.copyWith(
@@ -159,7 +160,8 @@ class ChatProvider extends ChangeNotifier {
       final memberIdx = conv.members.indexWhere((m) => m.id == userId);
       if (memberIdx != -1) {
         final updatedMembers = List<UserModel>.from(conv.members);
-        updatedMembers[memberIdx] = updatedMembers[memberIdx].copyWith(isOnline: isOnline);
+        updatedMembers[memberIdx] =
+            updatedMembers[memberIdx].copyWith(isOnline: isOnline);
         _conversations[i] = ConversationModel(
           id: conv.id,
           kind: conv.kind,

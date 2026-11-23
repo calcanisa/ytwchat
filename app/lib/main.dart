@@ -22,7 +22,7 @@ class ConverseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final storage = const FlutterSecureStorage();
+    const storage = FlutterSecureStorage();
     final wsService = WebSocketService();
 
     final dio = Dio(BaseOptions(

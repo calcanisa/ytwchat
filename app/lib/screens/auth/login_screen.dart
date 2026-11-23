@@ -25,14 +25,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) return;
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) return;
     setState(() => _loading = true);
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(_emailController.text.trim(), _passwordController.text);
+    final ok = await auth.login(
+        _emailController.text.trim(), _passwordController.text);
     if (mounted && !ok) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.error ?? 'Login failed'), backgroundColor: AppTheme.error),
+        SnackBar(
+            content: Text(auth.error ?? 'Login failed'),
+            backgroundColor: AppTheme.error),
       );
     }
   }
@@ -47,9 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 64),
-              const Text('Welcome back', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
+              const Text('Welcome back',
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              const Text('Sign in to Converse', style: TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 16)),
+              const Text('Sign in to Converse',
+                  style:
+                      TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 16)),
               const SizedBox(height: 48),
               TextField(
                 controller: _emailController,
@@ -63,7 +70,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: InputDecoration(
                   hintText: 'Password',
                   suffixIcon: IconButton(
-                    icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: AppTheme.onSurfaceMuted),
+                    icon: Icon(
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                        color: AppTheme.onSurfaceMuted),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
@@ -73,16 +82,24 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: _loading ? null : _login,
                 child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
                     : const Text('Sign in'),
               ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account? ", style: TextStyle(color: AppTheme.onSurfaceMuted)),
+                  const Text("Don't have an account? ",
+                      style: TextStyle(color: AppTheme.onSurfaceMuted)),
                   TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RegisterScreen())),
                     child: const Text('Sign up'),
                   ),
                 ],

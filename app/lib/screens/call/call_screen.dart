@@ -84,10 +84,10 @@ class _CallScreenState extends State<CallScreen> {
 
     _pc!.onIceCandidate = (candidate) {
       context.read<WebSocketService>().sendIceCandidate(
-        widget.remoteUserId,
-        widget.conversation.id,
-        candidate.toMap().toString(),
-      );
+            widget.remoteUserId,
+            widget.conversation.id,
+            candidate.toMap().toString(),
+          );
     };
 
     _pc!.onTrack = (event) {
@@ -109,7 +109,10 @@ class _CallScreenState extends State<CallScreen> {
         case WsEvent.callAnswer:
           final sdp = msg.data['sdp'] as String;
           await _pc?.setRemoteDescription(RTCSessionDescription(sdp, 'answer'));
-          setState(() { _connected = true; _ringing = false; });
+          setState(() {
+            _connected = true;
+            _ringing = false;
+          });
           break;
 
         case WsEvent.callIceCandidate:
@@ -136,10 +139,10 @@ class _CallScreenState extends State<CallScreen> {
     final offer = await _pc!.createOffer();
     await _pc!.setLocalDescription(offer);
     context.read<WebSocketService>().sendCallOffer(
-      widget.remoteUserId,
-      widget.conversation.id,
-      offer.sdp!,
-    );
+          widget.remoteUserId,
+          widget.conversation.id,
+          offer.sdp!,
+        );
   }
 
   Future<void> _answerCall(String offerSdp) async {
@@ -147,19 +150,22 @@ class _CallScreenState extends State<CallScreen> {
     final answer = await _pc!.createAnswer();
     await _pc!.setLocalDescription(answer);
     context.read<WebSocketService>().sendCallAnswer(
-      widget.remoteUserId,
-      widget.conversation.id,
-      answer.sdp!,
-    );
-    setState(() { _connected = true; _ringing = false; });
+          widget.remoteUserId,
+          widget.conversation.id,
+          answer.sdp!,
+        );
+    setState(() {
+      _connected = true;
+      _ringing = false;
+    });
   }
 
   void _hangup({bool remote = false}) {
     if (!remote) {
       context.read<WebSocketService>().sendCallHangup(
-        widget.remoteUserId,
-        widget.conversation.id,
-      );
+            widget.remoteUserId,
+            widget.conversation.id,
+          );
     }
     _cleanup();
     if (mounted) Navigator.pop(context);
@@ -207,7 +213,8 @@ class _CallScreenState extends State<CallScreen> {
       body: Stack(
         children: [
           if (widget.isVideo && _connected)
-            RTCVideoView(_remoteRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
+            RTCVideoView(_remoteRenderer,
+                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
           else
             Center(
               child: Column(
@@ -218,22 +225,30 @@ class _CallScreenState extends State<CallScreen> {
                     backgroundColor: AppTheme.surfaceVariant,
                     child: Text(
                       widget.remoteDisplayName[0].toUpperCase(),
-                      style: const TextStyle(fontSize: 36, color: AppTheme.onSurface),
+                      style: const TextStyle(
+                          fontSize: 36, color: AppTheme.onSurface),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(widget.remoteDisplayName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
+                  Text(widget.remoteDisplayName,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Text(
                     _ringing
-                        ? (widget.isOutgoing ? 'Calling...' : 'Incoming call...')
-                        : _connected ? (widget.isVideo ? 'Video call' : 'Voice call') : 'Connecting...',
+                        ? (widget.isOutgoing
+                            ? 'Calling...'
+                            : 'Incoming call...')
+                        : _connected
+                            ? (widget.isVideo ? 'Video call' : 'Voice call')
+                            : 'Connecting...',
                     style: const TextStyle(color: AppTheme.onSurfaceMuted),
                   ),
                 ],
               ),
             ),
-
           if (widget.isVideo && _connected)
             Positioned(
               top: 48,
@@ -245,7 +260,6 @@ class _CallScreenState extends State<CallScreen> {
                 child: RTCVideoView(_localRenderer, mirror: true),
               ),
             ),
-
           Positioned(
             bottom: 48,
             left: 0,
@@ -269,7 +283,8 @@ class _CallScreenState extends State<CallScreen> {
                 if (widget.isVideo)
                   _CallButton(
                     icon: _cameraOff ? Icons.videocam_off : Icons.videocam,
-                    color: _cameraOff ? AppTheme.error : AppTheme.surfaceVariant,
+                    color:
+                        _cameraOff ? AppTheme.error : AppTheme.surfaceVariant,
                     onTap: _toggleCamera,
                   )
                 else

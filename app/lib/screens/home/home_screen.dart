@@ -40,7 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.edit),
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const NewConversationScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const NewConversationScreen()),
               ),
             ),
           PopupMenuButton(
@@ -59,11 +60,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.chat_bubble_outline, size: 64, color: AppTheme.onSurfaceMuted),
+                      Icon(Icons.chat_bubble_outline,
+                          size: 64, color: AppTheme.onSurfaceMuted),
                       SizedBox(height: 16),
-                      Text('No conversations yet', style: TextStyle(color: AppTheme.onSurfaceMuted)),
+                      Text('No conversations yet',
+                          style: TextStyle(color: AppTheme.onSurfaceMuted)),
                       SizedBox(height: 8),
-                      Text('Go to Contacts to start chatting', style: TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 13)),
+                      Text('Go to Contacts to start chatting',
+                          style: TextStyle(
+                              color: AppTheme.onSurfaceMuted, fontSize: 13)),
                     ],
                   ),
                 )
@@ -76,7 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       currentUserId: auth.user?.id ?? '',
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => ChatScreen(conversation: conv)),
+                        MaterialPageRoute(
+                            builder: (_) => ChatScreen(conversation: conv)),
                       ),
                     );
                   },
@@ -88,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         backgroundColor: AppTheme.surface,
-        indicatorColor: AppTheme.primary.withOpacity(0.2),
+        indicatorColor: AppTheme.primary.withValues(alpha: 0.2),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),

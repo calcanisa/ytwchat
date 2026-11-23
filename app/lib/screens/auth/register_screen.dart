@@ -33,7 +33,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_usernameController.text.trim().isEmpty ||
         _displayNameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
-        _passwordController.text.isEmpty) return;
+        _passwordController.text.isEmpty) {
+      return;
+    }
 
     setState(() => _loading = true);
     final auth = context.read<AuthProvider>();
@@ -42,12 +44,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _displayNameController.text.trim(),
       _emailController.text.trim(),
       _passwordController.text,
-      phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      phoneNumber: _phoneController.text.trim().isEmpty
+          ? null
+          : _phoneController.text.trim(),
     );
     if (mounted && !ok) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.error ?? 'Registration failed'), backgroundColor: AppTheme.error),
+        SnackBar(
+            content: Text(auth.error ?? 'Registration failed'),
+            backgroundColor: AppTheme.error),
       );
     }
   }
@@ -63,16 +69,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-              const Text('Join Converse', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+              const Text('Join Converse',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              const Text('Create your account', style: TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 16)),
+              const Text('Create your account',
+                  style:
+                      TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 16)),
               const SizedBox(height: 40),
-              TextField(controller: _displayNameController, decoration: const InputDecoration(hintText: 'Display name')),
+              TextField(
+                  controller: _displayNameController,
+                  decoration: const InputDecoration(hintText: 'Display name')),
               const SizedBox(height: 12),
               TextField(
                 controller: _usernameController,
                 decoration: const InputDecoration(hintText: 'Username'),
-                inputFormatters: [],
+                inputFormatters: const [],
               ),
               const SizedBox(height: 12),
               TextField(
@@ -84,7 +95,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(hintText: 'Phone number (optional)'),
+                decoration:
+                    const InputDecoration(hintText: 'Phone number (optional)'),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -93,7 +105,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   hintText: 'Password',
                   suffixIcon: IconButton(
-                    icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: AppTheme.onSurfaceMuted),
+                    icon: Icon(
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                        color: AppTheme.onSurfaceMuted),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
@@ -102,7 +116,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 onPressed: _loading ? null : _register,
                 child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
                     : const Text('Create account'),
               ),
             ],

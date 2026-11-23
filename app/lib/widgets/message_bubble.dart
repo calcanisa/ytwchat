@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/message_model.dart';
 import '../utils/theme.dart';
-import 'avatar.dart';
 
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
@@ -22,7 +21,8 @@ class MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
-        mainAxisAlignment: isOwn ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isOwn ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isOwn && showAvatar)
@@ -33,7 +33,8 @@ class MessageBubble extends StatelessWidget {
                 backgroundColor: AppTheme.surfaceVariant,
                 child: Text(
                   message.senderDisplayName[0].toUpperCase(),
-                  style: const TextStyle(fontSize: 11, color: AppTheme.onSurface),
+                  style:
+                      const TextStyle(fontSize: 11, color: AppTheme.onSurface),
                 ),
               ),
             )
@@ -41,9 +42,12 @@ class MessageBubble extends StatelessWidget {
             const SizedBox(width: 36),
           Flexible(
             child: Container(
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.72),
               decoration: BoxDecoration(
-                color: isOwn ? AppTheme.messageBubbleOwn : AppTheme.messageBubbleOther,
+                color: isOwn
+                    ? AppTheme.messageBubbleOwn
+                    : AppTheme.messageBubbleOther,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -60,7 +64,10 @@ class MessageBubble extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         message.senderDisplayName,
-                        style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                   _buildContent(),
@@ -86,27 +93,36 @@ class MessageBubble extends StatelessWidget {
 
   Widget _buildContent() {
     if (message.isDeleted) {
-      return const Text('This message was deleted', style: TextStyle(color: AppTheme.onSurfaceMuted, fontStyle: FontStyle.italic));
+      return const Text('This message was deleted',
+          style: TextStyle(
+              color: AppTheme.onSurfaceMuted, fontStyle: FontStyle.italic));
     }
     switch (message.kind) {
       case MessageKind.text:
-        return Text(message.content ?? '', style: const TextStyle(fontSize: 15));
+        return Text(message.content ?? '',
+            style: const TextStyle(fontSize: 15));
       case MessageKind.voiceNote:
-        return VoiceNotePlayer(url: message.mediaUrl ?? '', durationSecs: message.mediaDurationSecs);
+        return VoiceNotePlayer(
+            url: message.mediaUrl ?? '',
+            durationSecs: message.mediaDurationSecs);
       case MessageKind.image:
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.network(message.mediaUrl ?? '', fit: BoxFit.cover, width: 200, height: 200),
+          child: Image.network(message.mediaUrl ?? '',
+              fit: BoxFit.cover, width: 200, height: 200),
         );
       case MessageKind.system:
-        return Text(message.content ?? '', style: const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 13));
+        return Text(message.content ?? '',
+            style:
+                const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 13));
       default:
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.attach_file, size: 16),
             const SizedBox(width: 4),
-            Text(message.content ?? 'File', style: const TextStyle(fontSize: 14)),
+            Text(message.content ?? 'File',
+                style: const TextStyle(fontSize: 14)),
           ],
         );
     }
@@ -133,10 +149,14 @@ class _VoiceNotePlayerState extends State<VoiceNotePlayer> {
   void initState() {
     super.initState();
     _player.positionStream.listen((p) => setState(() => _position = p));
-    _player.durationStream.listen((d) => setState(() => _duration = d ?? Duration.zero));
+    _player.durationStream
+        .listen((d) => setState(() => _duration = d ?? Duration.zero));
     _player.playerStateStream.listen((s) {
       if (s.processingState == ProcessingState.completed) {
-        setState(() { _playing = false; _position = Duration.zero; });
+        setState(() {
+          _playing = false;
+          _position = Duration.zero;
+        });
         _player.seek(Duration.zero);
         _player.pause();
       }
@@ -170,7 +190,9 @@ class _VoiceNotePlayerState extends State<VoiceNotePlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _duration.inSeconds > 0 ? _duration : Duration(seconds: widget.durationSecs ?? 0);
+    final total = _duration.inSeconds > 0
+        ? _duration
+        : Duration(seconds: widget.durationSecs ?? 0);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -180,8 +202,10 @@ class _VoiceNotePlayerState extends State<VoiceNotePlayer> {
           child: Container(
             width: 36,
             height: 36,
-            decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-            child: Icon(_playing ? Icons.pause : Icons.play_arrow, size: 20, color: Colors.white),
+            decoration: const BoxDecoration(
+                color: Colors.white24, shape: BoxShape.circle),
+            child: Icon(_playing ? Icons.pause : Icons.play_arrow,
+                size: 20, color: Colors.white),
           ),
         ),
         const SizedBox(width: 8),
@@ -199,7 +223,8 @@ class _VoiceNotePlayerState extends State<VoiceNotePlayer> {
                   value: total.inSeconds > 0
                       ? (_position.inSeconds / total.inSeconds).clamp(0.0, 1.0)
                       : 0.0,
-                  onChanged: (v) => _player.seek(Duration(seconds: (v * total.inSeconds).toInt())),
+                  onChanged: (v) => _player
+                      .seek(Duration(seconds: (v * total.inSeconds).toInt())),
                   activeColor: Colors.white,
                   inactiveColor: Colors.white30,
                 ),

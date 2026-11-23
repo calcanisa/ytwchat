@@ -12,7 +12,9 @@ class ApiService {
 
   Future<List<ConversationModel>> getConversations() async {
     final res = await _dio.get('${AppConstants.baseUrl}/conversations');
-    return (res.data as List).map((c) => ConversationModel.fromJson(c)).toList();
+    return (res.data as List)
+        .map((c) => ConversationModel.fromJson(c))
+        .toList();
   }
 
   Future<ConversationModel> createDirectConversation(String otherUserId) async {
@@ -35,7 +37,8 @@ class ApiService {
     return ConversationModel.fromJson(res.data);
   }
 
-  Future<List<MessageModel>> getMessages(String conversationId, {String? before}) async {
+  Future<List<MessageModel>> getMessages(String conversationId,
+      {String? before}) async {
     final res = await _dio.get(
       '${AppConstants.baseUrl}/conversations/$conversationId/messages',
       queryParameters: {
@@ -46,7 +49,8 @@ class ApiService {
     return (res.data as List).map((m) => MessageModel.fromJson(m)).toList();
   }
 
-  Future<MessageModel> sendTextMessage(String conversationId, String content, {String? replyToId}) async {
+  Future<MessageModel> sendTextMessage(String conversationId, String content,
+      {String? replyToId}) async {
     final res = await _dio.post(
       '${AppConstants.baseUrl}/conversations/$conversationId/messages',
       data: {
@@ -70,7 +74,8 @@ class ApiService {
     return MessageModel.fromJson(res.data);
   }
 
-  Future<MessageModel> sendImageMessage(String conversationId, File file) async {
+  Future<MessageModel> sendImageMessage(
+      String conversationId, File file) async {
     final uploadRes = await uploadFile(file);
     final res = await _dio.post(
       '${AppConstants.baseUrl}/conversations/$conversationId/messages',
@@ -86,12 +91,14 @@ class ApiService {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path),
     });
-    final res = await _dio.post('${AppConstants.baseUrl}/media/upload', data: formData);
+    final res =
+        await _dio.post('${AppConstants.baseUrl}/media/upload', data: formData);
     return res.data as Map<String, dynamic>;
   }
 
   Future<void> markRead(String conversationId) async {
-    await _dio.post('${AppConstants.baseUrl}/conversations/$conversationId/read');
+    await _dio
+        .post('${AppConstants.baseUrl}/conversations/$conversationId/read');
   }
 
   Future<List<UserModel>> searchUsers(String query) async {
@@ -123,8 +130,10 @@ class ApiService {
     await _dio.delete('${AppConstants.baseUrl}/contacts/$userId');
   }
 
-  Future<List<Map<String, dynamic>>> lookupByPhones(List<String> phoneNumbers) async {
-    final res = await _dio.post('${AppConstants.baseUrl}/contacts/lookup', data: {
+  Future<List<Map<String, dynamic>>> lookupByPhones(
+      List<String> phoneNumbers) async {
+    final res =
+        await _dio.post('${AppConstants.baseUrl}/contacts/lookup', data: {
       'phone_numbers': phoneNumbers,
     });
     return (res.data as List).cast<Map<String, dynamic>>();

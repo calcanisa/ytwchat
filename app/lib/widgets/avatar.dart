@@ -16,9 +16,12 @@ class UserAvatar extends StatelessWidget {
         CircleAvatar(
           radius: radius,
           backgroundColor: AppTheme.surfaceVariant,
-          backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+          backgroundImage:
+              user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
           child: user.avatarUrl == null
-              ? Text(user.displayName[0].toUpperCase(), style: TextStyle(fontSize: radius * 0.7, color: AppTheme.onSurface))
+              ? Text(user.displayName[0].toUpperCase(),
+                  style: TextStyle(
+                      fontSize: radius * 0.7, color: AppTheme.onSurface))
               : null,
         ),
         if (user.isOnline)
@@ -65,7 +68,9 @@ class ConversationAvatar extends StatelessWidget {
           backgroundColor: AppTheme.surfaceVariant,
           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
           child: avatarUrl == null
-              ? Text(name[0].toUpperCase(), style: TextStyle(fontSize: radius * 0.7, color: AppTheme.onSurface))
+              ? Text(name[0].toUpperCase(),
+                  style: TextStyle(
+                      fontSize: radius * 0.7, color: AppTheme.onSurface))
               : null,
         ),
         if (online)

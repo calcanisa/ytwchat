@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../models/conversation_model.dart';
-import '../../models/message_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../services/api_service.dart';
@@ -96,11 +95,15 @@ class _ChatScreenState extends State<ChatScreen> {
     context.read<WebSocketService>().sendTypingStop(widget.conversation.id);
     setState(() => _sending = true);
     try {
-      await context.read<ApiService>().sendTextMessage(widget.conversation.id, text);
+      await context
+          .read<ApiService>()
+          .sendTextMessage(widget.conversation.id, text);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send message'), backgroundColor: AppTheme.error),
+          const SnackBar(
+              content: Text('Failed to send message'),
+              backgroundColor: AppTheme.error),
         );
       }
     } finally {
@@ -114,7 +117,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final status = await Permission.microphone.request();
     if (!status.isGranted) return;
     final dir = await getTemporaryDirectory();
-    _recordingPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.aac';
+    _recordingPath =
+        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.aac';
     await _recorder.startRecorder(toFile: _recordingPath, codec: Codec.aacADTS);
     setState(() => _recording = true);
   }
@@ -127,11 +131,15 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!file.existsSync()) return;
     setState(() => _sending = true);
     try {
-      await context.read<ApiService>().sendVoiceNote(widget.conversation.id, file);
+      await context
+          .read<ApiService>()
+          .sendVoiceNote(widget.conversation.id, file);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send voice note'), backgroundColor: AppTheme.error),
+          const SnackBar(
+              content: Text('Failed to send voice note'),
+              backgroundColor: AppTheme.error),
         );
       }
     } finally {
@@ -187,10 +195,15 @@ class _ChatScreenState extends State<ChatScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(convName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(convName,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
                 Text(
                   isOnline ? 'online' : 'offline',
-                  style: TextStyle(fontSize: 12, color: isOnline ? AppTheme.online : AppTheme.onSurfaceMuted),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          isOnline ? AppTheme.online : AppTheme.onSurfaceMuted),
                 ),
               ],
             ),
@@ -198,8 +211,12 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           if (widget.conversation.kind == ConversationKind.direct) ...[
-            IconButton(icon: const Icon(Icons.call), onPressed: () => _startCall(false)),
-            IconButton(icon: const Icon(Icons.videocam), onPressed: () => _startCall(true)),
+            IconButton(
+                icon: const Icon(Icons.call),
+                onPressed: () => _startCall(false)),
+            IconButton(
+                icon: const Icon(Icons.videocam),
+                onPressed: () => _startCall(true)),
           ],
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
         ],
@@ -208,16 +225,20 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: messages.isEmpty
-                ? const Center(child: Text('No messages yet', style: TextStyle(color: AppTheme.onSurfaceMuted)))
+                ? const Center(
+                    child: Text('No messages yet',
+                        style: TextStyle(color: AppTheme.onSurfaceMuted)))
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final message = messages[index];
                       final isOwn = message.senderId == auth.user?.id;
                       final showAvatar = !isOwn &&
-                          (index == 0 || messages[index - 1].senderId != message.senderId);
+                          (index == 0 ||
+                              messages[index - 1].senderId != message.senderId);
                       return MessageBubble(
                         message: message,
                         isOwn: isOwn,
@@ -241,7 +262,9 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             const Icon(Icons.circle, color: AppTheme.error, size: 12),
             const SizedBox(width: 8),
-            const Expanded(child: Text('Recording...', style: TextStyle(color: AppTheme.onSurfaceMuted))),
+            const Expanded(
+                child: Text('Recording...',
+                    style: TextStyle(color: AppTheme.onSurfaceMuted))),
             IconButton(
               icon: const Icon(Icons.delete, color: AppTheme.onSurfaceMuted),
               onPressed: _cancelRecording,
@@ -267,7 +290,8 @@ class _ChatScreenState extends State<ChatScreen> {
               maxLines: null,
               decoration: const InputDecoration(
                 hintText: 'Message',
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
             ),
           ),
@@ -282,7 +306,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Container(
                     width: 44,
                     height: 44,
-                    decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                        color: AppTheme.primary, shape: BoxShape.circle),
                     child: const Icon(Icons.mic, color: Colors.white, size: 20),
                   ),
                 );
@@ -292,11 +317,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Container(
                   width: 44,
                   height: 44,
-                  decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                      color: AppTheme.primary, shape: BoxShape.circle),
                   child: _sending
                       ? const Padding(
                           padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.send, color: Colors.white, size: 20),
                 ),

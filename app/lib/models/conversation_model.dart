@@ -52,10 +52,13 @@ class ConversationModel {
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
     return ConversationModel(
       id: json['id'] as String,
-      kind: json['kind'] == 'direct' ? ConversationKind.direct : ConversationKind.group,
+      kind: json['kind'] == 'direct'
+          ? ConversationKind.direct
+          : ConversationKind.group,
       name: json['name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
-      members: (json['members'] as List).map((m) => UserModel.fromJson(m)).toList(),
+      members:
+          (json['members'] as List).map((m) => UserModel.fromJson(m)).toList(),
       lastMessage: json['last_message'] != null
           ? LastMessage.fromJson(json['last_message'])
           : null,

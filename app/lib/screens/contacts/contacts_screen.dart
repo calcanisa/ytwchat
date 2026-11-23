@@ -43,14 +43,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final api = context.read<ApiService>();
       _converseContacts = await api.getContacts();
 
       final status = await Permission.contacts.request();
       if (!status.isGranted) {
-        setState(() { _loading = false; _error = 'Contacts permission denied'; });
+        setState(() {
+          _loading = false;
+          _error = 'Contacts permission denied';
+        });
         return;
       }
 
@@ -59,20 +65,27 @@ class _ContactsScreenState extends State<ContactsScreen> {
       );
 
       final phones = phoneContacts
-          .expand((c) => c.phones.map((p) => MapEntry(c.displayName, _normalizePhone(p.number))))
+          .expand((c) => c.phones
+              .map((p) => MapEntry(c.displayName, _normalizePhone(p.number))))
           .where((e) => e.value.isNotEmpty)
           .toList();
 
       final phoneNumbers = phones.map((e) => e.value).toSet().toList();
-      final matched = phoneNumbers.isEmpty ? [] : await api.lookupByPhones(phoneNumbers);
-      final matchMap = { for (final r in matched) r['phone_number'] as String: UserModel.fromJson(r['user']) };
+      final matched =
+          phoneNumbers.isEmpty ? [] : await api.lookupByPhones(phoneNumbers);
+      final matchMap = {
+        for (final r in matched)
+          r['phone_number'] as String: UserModel.fromJson(r['user'])
+      };
 
       setState(() {
-        _contacts = phones.map((e) => _PhoneContact(
-          displayName: e.key ?? "Unknown",
-          phoneNumber: e.value,
-          converseUser: matchMap[e.value],
-        )).toList();
+        _contacts = phones
+            .map((e) => _PhoneContact(
+                  displayName: e.key ?? "Unknown",
+                  phoneNumber: e.value,
+                  converseUser: matchMap[e.value],
+                ))
+            .toList();
         _contacts.sort((a, b) {
           if (a.converseUser != null && b.converseUser == null) return -1;
           if (a.converseUser == null && b.converseUser != null) return 1;
@@ -81,7 +94,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
         _loading = false;
       });
     } catch (e) {
-      setState(() { _loading = false; _error = 'Failed to load contacts: $e'; });
+      setState(() {
+        _loading = false;
+        _error = 'Failed to load contacts: $e';
+      });
     }
   }
 
@@ -101,7 +117,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${contact.converseUser!.displayName} added to Converse')),
+          SnackBar(
+              content: Text(
+                  '${contact.converseUser!.displayName} added to Converse')),
         );
       }
     } catch (_) {
@@ -122,11 +140,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
     final chat = context.read<ChatProvider>();
     final conv = await chat.startDirectConversation(user.id);
     if (conv != null && mounted) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(conversation: conv)));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => ChatScreen(conversation: conv)));
     }
   }
 
-  bool _isAdded(UserModel user) => _converseContacts.any((c) => c.id == user.id);
+  bool _isAdded(UserModel user) =>
+      _converseContacts.any((c) => c.id == user.id);
 
   @override
   Widget build(BuildContext context) {
@@ -138,11 +158,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
+                      const Icon(Icons.error_outline,
+                          size: 48, color: AppTheme.error),
                       const SizedBox(height: 12),
-                      Text(_error!, style: const TextStyle(color: AppTheme.onSurfaceMuted), textAlign: TextAlign.center),
+                      Text(_error!,
+                          style:
+                              const TextStyle(color: AppTheme.onSurfaceMuted),
+                          textAlign: TextAlign.center),
                       const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _load, child: const Text('Retry')),
+                      ElevatedButton(
+                          onPressed: _load, child: const Text('Retry')),
                     ],
                   ),
                 )
@@ -156,16 +181,19 @@ class _ContactsScreenState extends State<ContactsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.contacts_outlined, size: 64, color: AppTheme.onSurfaceMuted),
+            Icon(Icons.contacts_outlined,
+                size: 64, color: AppTheme.onSurfaceMuted),
             SizedBox(height: 16),
-            Text('No contacts found', style: TextStyle(color: AppTheme.onSurfaceMuted)),
+            Text('No contacts found',
+                style: TextStyle(color: AppTheme.onSurfaceMuted)),
           ],
         ),
       );
     }
 
     final onConverse = _contacts.where((c) => c.converseUser != null).toList();
-    final notOnConverse = _contacts.where((c) => c.converseUser == null).toList();
+    final notOnConverse =
+        _contacts.where((c) => c.converseUser == null).toList();
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -187,7 +215,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
   Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(title, style: const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Text(title,
+          style: const TextStyle(
+              color: AppTheme.onSurfaceMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600)),
     );
   }
 
@@ -198,11 +230,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
     return ListTile(
       leading: UserAvatar(user: user, radius: 22),
       title: Text(contact.displayName),
-      subtitle: Text('@${user.username}', style: const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 12)),
+      subtitle: Text('@${user.username}',
+          style: const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 12)),
       trailing: added
-          ? TextButton(onPressed: () => _startChat(user), child: const Text('Message'))
+          ? TextButton(
+              onPressed: () => _startChat(user), child: const Text('Message'))
           : contact.adding
-              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : ElevatedButton(
                   onPressed: () => _addContact(contact),
                   style: ElevatedButton.styleFrom(
@@ -220,10 +257,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
       leading: CircleAvatar(
         radius: 22,
         backgroundColor: AppTheme.surfaceVariant,
-        child: Text(contact.displayName[0].toUpperCase(), style: const TextStyle(color: AppTheme.onSurfaceMuted)),
+        child: Text(contact.displayName[0].toUpperCase(),
+            style: const TextStyle(color: AppTheme.onSurfaceMuted)),
       ),
       title: Text(contact.displayName),
-      subtitle: Text(contact.phoneNumber, style: const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 12)),
+      subtitle: Text(contact.phoneNumber,
+          style: const TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 12)),
       trailing: TextButton.icon(
         onPressed: () => _sendSmsInvite(contact),
         icon: const Icon(Icons.sms_outlined, size: 16),
