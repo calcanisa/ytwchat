@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ytwchat: private messages, voice notes and video calls</title>
+<meta name="description" content="ytwchat is a messaging app for texts, voice notes, photos and video calls. Every message is end-to-end encrypted, so only the people in the chat can read it.">
+<link rel="canonical" href="https://ytwchat.com/">
+<meta name="theme-color" content="#EEF1F7">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ytwchat">
+<meta property="og:title" content="ytwchat: only the people in the chat can read it">
+<meta property="og:description" content="Private messages, voice notes, photos and video calls, end-to-end encrypted.">
+<meta property="og:url" content="https://ytwchat.com/">
+<meta property="og:image" content="https://ytwchat.com/assets/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ytwchat.com/#org","name":"ytwchat","url":"https://ytwchat.com/","logo":"https://ytwchat.com/assets/img/apple-touch-icon.png"},{"@type":"WebSite","@id":"https://ytwchat.com/#website","url":"https://ytwchat.com/","name":"ytwchat","publisher":{"@id":"https://ytwchat.com/#org"}},{"@type":"SoftwareApplication","name":"ytwchat","applicationCategory":"CommunicationApplication","operatingSystem":"Android, iOS","description":"End-to-end encrypted messages, voice notes, photos and video calls.","publisher":{"@id":"https://ytwchat.com/#org"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can ytwchat read my messages?","acceptedAnswer":{"@type":"Answer","text":"No. Messages, voice notes, photos and calls are encrypted on your phone and only unlocked on the phones of the people in the chat. Our servers only pass along locked data and never have the keys."}},{"@type":"Question","name":"Do I need a YTW account?","acceptedAnswer":{"@type":"Answer","text":"No. You can sign up with your email address. If you already use YTW, you can sign in with your YTW account instead."}},{"@type":"Question","name":"What does ytwchat store about me?","acceptedAnswer":{"@type":"Answer","text":"Your account details, the devices you use, and who you chat with and when, so messages can be delivered. Never the contents of your messages, voice notes, photos or calls."}},{"@type":"Question","name":"Which phones does ytwchat work on?","acceptedAnswer":{"@type":"Answer","text":"ytwchat is coming soon to Android and iPhone."}}]}]}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap top__inner">
+    <a class="brand" href="/" aria-label="ytwchat home">
+      <svg class="brand__mark" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false"><path d="M6 4h20a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H14l-7 5v-5H6a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4z" fill="#2D4BFF"/><rect x="9" y="11" width="11" height="2.6" rx="1.3" fill="#EEF1F7"/><rect x="9" y="15.4" width="7" height="2.6" rx="1.3" fill="#EEF1F7"/><circle cx="23" cy="16.7" r="2.6" fill="#FFC83D"/></svg>
+      <span class="brand__name">ytwchat</span>
+    </a>
+    <nav class="top__nav" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#ytw">YTW</a>
+      <a href="#faq">Questions</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <h1 id="hero-title">Only the people in the chat can read it.</h1>
+        <p class="hero__lead">ytwchat is a messaging app for texts, voice notes, photos and video calls. Every message is locked on your phone before it is sent, and only unlocked on the phone it was sent to. Not even we can read it.</p>
+        <div class="hero__cta">
+          <a class="btn" href="#how">See how it works</a>
+          <p class="hero__soon">Coming soon to Android and iPhone</p>
+        </div>
+      </div>
+
+      <figure class="demo" aria-label="Example chat between Lerato and Sam, and what the ytwchat server stores for it">
+        <div class="phone">
+          <div class="phone__bar">
+            <span class="phone__avatar" aria-hidden="true">L</span>
+            <span class="phone__who">Lerato<small>Encrypted chat</small></span>
+            <svg class="phone__lock" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+          </div>
+          <ol class="chat">
+            <li class="msg msg--in"><span data-decrypt>Are we still on for Saturday?</span></li>
+            <li class="msg msg--out"><span data-decrypt>Yes. I'm bringing the cake this time.</span></li>
+            <li class="msg msg--in msg--voice"><span class="voice" aria-label="Voice note, 12 seconds"><span class="voice__play" aria-hidden="true"></span><span class="voice__wave" aria-hidden="true"></span><span class="voice__time">0:12</span></span></li>
+            <li class="msg msg--out"><span data-decrypt>Perfect. Sending you the address now.</span></li>
+          </ol>
+        </div>
+        <figcaption class="server">
+          <span class="server__label"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>What our server stores for that last message</span>
+          <code class="server__blob">kE9x/2QmZt8Lw0rYvB3nHc+u7JdP1sA6fGqX4oVyN5iRbTe2MlKz8WjU0hCp=</code>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="features" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <h2 id="features-title">Everything you use to keep in touch</h2>
+      <dl class="features__list">
+        <div>
+          <dt>Messages</dt>
+          <dd>Fast, private chats one to one or in groups, with replies and read receipts.</dd>
+        </div>
+        <div>
+          <dt>Voice notes</dt>
+          <dd>Hold to record, let go to send. Voice notes are encrypted like everything else.</dd>
+        </div>
+        <div>
+          <dt>Photos and files</dt>
+          <dd>Share photos and documents. They are encrypted on your phone before they upload.</dd>
+        </div>
+        <div>
+          <dt>Voice and video calls</dt>
+          <dd>Call the people you chat with. Calls are encrypted end to end as well.</dd>
+        </div>
+        <div>
+          <dt>Groups</dt>
+          <dd>Plan with family, friends or your team. Everyone in the group gets the same protection.</dd>
+        </div>
+        <div>
+          <dt>Your contacts</dt>
+          <dd>See which people you know already use ytwchat. Phone numbers are checked for matches, then discarded.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="how" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <h2 id="how-title">How your messages stay private</h2>
+      <ol class="how__steps">
+        <li>
+          <h3>Your phone makes the keys</h3>
+          <p>When you sign up, ytwchat creates encryption keys on your phone. The private key never leaves it.</p>
+        </li>
+        <li>
+          <h3>Messages are locked before they leave</h3>
+          <p>Every message, voice note and photo is encrypted on your phone. Our servers only ever pass along locked data.</p>
+        </li>
+        <li>
+          <h3>Only their phone can unlock it</h3>
+          <p>The person you are chatting with unlocks it on their phone. Nobody in between can read it, including us.</p>
+        </li>
+      </ol>
+      <p class="how__note">ytwchat uses MLS (Messaging Layer Security, RFC 9420), the open standard for secure messaging, built for groups and for people with more than one device.</p>
+    </div>
+  </section>
+
+  <section class="ytw" id="ytw" aria-labelledby="ytw-title">
+    <div class="wrap ytw__inner">
+      <h2 id="ytw-title">Already on YTW? You are ready to chat.</h2>
+      <div class="ytw__copy">
+        <p>Sign in to ytwchat with your YTW account, no new password needed. Inside the YTW app, chat with the people and businesses you find there, with the same encryption.</p>
+        <p><a class="link" href="https://yestowow.com/">Visit Yes to Wow</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <h2 id="faq-title">Questions</h2>
+      <div class="faq__list">
+        <details>
+          <summary>Can ytwchat read my messages?</summary>
+          <p>No. Messages, voice notes, photos and calls are encrypted on your phone and only unlocked on the phones of the people in the chat. Our servers only pass along locked data and never have the keys.</p>
+        </details>
+        <details>
+          <summary>Do I need a YTW account?</summary>
+          <p>No. You can sign up with your email address. If you already use YTW, you can sign in with your YTW account instead.</p>
+        </details>
+        <details>
+          <summary>What does ytwchat store about me?</summary>
+          <p>Your account details, the devices you use, and who you chat with and when, so messages can be delivered. Never the contents of your messages, voice notes, photos or calls. The <a class="link" href="/privacy/">privacy policy</a> has the full list.</p>
+        </details>
+        <details>
+          <summary>Which phones does ytwchat work on?</summary>
+          <p>ytwchat is coming soon to Android and iPhone.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__inner">
+    <p class="foot__brand">ytwchat, a Yes to Wow product</p>
+    <nav class="foot__nav" aria-label="Footer">
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="mailto:hello@ytwchat.com">hello@ytwchat.com</a>
+    </nav>
+    <p class="foot__copy">&copy; <span data-year>2026</span> ytwchat</p>
+  </div>
+</footer>
+<script src="/assets/js/site.js" defer></script>
+</body>
+</html>
