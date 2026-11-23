@@ -23,6 +23,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list).post(create))
         .route("/{id}", get(get_one))
+        .route("/{id}/devices", get(devices))
         .route("/{id}/members", post(add_members))
         .route("/{id}/members/{user_id}", delete(remove_member))
 }
@@ -126,6 +127,50 @@ async fn notify_updated(state: &AppState, conversation_id: Uuid, extra_users: &[
         state.hub.send_user(u, &payload);
     }
     Ok(())
+}
+
+pub async fn notify_user_conversations(state: &AppState, user_id: Uuid) -> AppResult<()> {
+    let rows: Vec<(Uuid, Uuid)> = sqlx::query_as(
+        "SELECT DISTINCT o.conversation_id, o.user_id FROM conversation_members m
+         JOIN conversation_members o ON o.conversation_id = m.conversation_id
+         WHERE m.user_id = $1",
+    )
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await?;
+    send_updates(state, &rows);
+    Ok(())
+}
+
+pub fn send_updates(state: &AppState, rows: &[(Uuid, Uuid)]) {
+    for (conversation_id, member) in rows {
+        let payload = json!({ "type": "conversation.updated", "conversation_id": conversation_id }).to_string();
+        state.hub.send_user(*member, &payload);
+    }
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+struct MemberDevice {
+    user_id: Uuid,
+    device_id: Uuid,
+}
+
+async fn devices(State(state): State<AppState>, auth: AuthUser, Path(id): Path<Uuid>) -> AppResult<Json<Vec<MemberDevice>>> {
+    if member_role(&state, id, auth.user_id).await?.is_none() {
+        return Err(AppError::NotFound("That conversation could not be found."));
+    }
+    let rows = sqlx::query_as::<_, MemberDevice>(
+        "SELECT d.user_id, d.id AS device_id FROM devices d
+         JOIN conversation_members m ON m.user_id = d.user_id AND m.conversation_id = $1
+         JOIN users u ON u.id = d.user_id
+         WHERE d.revoked_at IS NULL AND u.deleted_at IS NULL
+           AND EXISTS (SELECT 1 FROM key_packages k WHERE k.device_id = d.id)
+         ORDER BY d.user_id, d.id",
+    )
+    .bind(id)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Json(rows))
 }
 
 async fn list(State(state): State<AppState>, auth: AuthUser) -> AppResult<Json<Vec<ConversationOut>>> {

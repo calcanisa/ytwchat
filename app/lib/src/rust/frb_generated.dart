@@ -116,8 +116,10 @@ abstract class RustLibApi extends BaseApi {
 
   DeviceRef crateApiChatChatCoreIdentity({required ChatCore that});
 
-  Future<String> crateApiChatChatCoreJoinFromWelcome(
-      {required ChatCore that, required List<int> welcome});
+  Future<PlatformInt64> crateApiChatChatCoreJoinFromWelcome(
+      {required ChatCore that,
+      required List<int> welcome,
+      required String expectedConversationId});
 
   Future<Uint8List> crateApiChatChatCoreLastResortKeyPackage(
       {required ChatCore that});
@@ -475,23 +477,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<String> crateApiChatChatCoreJoinFromWelcome(
-      {required ChatCore that, required List<int> welcome}) {
+  Future<PlatformInt64> crateApiChatChatCoreJoinFromWelcome(
+      {required ChatCore that,
+      required List<int> welcome,
+      required String expectedConversationId}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerChatCore(
             that, serializer);
         sse_encode_list_prim_u_8_loose(welcome, serializer);
+        sse_encode_String(expectedConversationId, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
             funcId: 12, port: port_);
       },
       codec: SseCodec(
-        decodeSuccessData: sse_decode_String,
+        decodeSuccessData: sse_decode_i_64,
         decodeErrorData: sse_decode_AnyhowException,
       ),
       constMeta: kCrateApiChatChatCoreJoinFromWelcomeConstMeta,
-      argValues: [that, welcome],
+      argValues: [that, welcome, expectedConversationId],
       apiImpl: this,
     ));
   }
@@ -499,7 +504,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiChatChatCoreJoinFromWelcomeConstMeta =>
       const TaskConstMeta(
         debugName: "ChatCore_join_from_welcome",
-        argNames: ["that", "welcome"],
+        argNames: ["that", "welcome", "expectedConversationId"],
       );
 
   @override
@@ -1515,9 +1520,13 @@ class ChatCoreImpl extends RustOpaque implements ChatCore {
         that: this,
       );
 
-  Future<String> joinFromWelcome({required List<int> welcome}) =>
-      RustLib.instance.api
-          .crateApiChatChatCoreJoinFromWelcome(that: this, welcome: welcome);
+  Future<PlatformInt64> joinFromWelcome(
+          {required List<int> welcome,
+          required String expectedConversationId}) =>
+      RustLib.instance.api.crateApiChatChatCoreJoinFromWelcome(
+          that: this,
+          welcome: welcome,
+          expectedConversationId: expectedConversationId);
 
   Future<Uint8List> lastResortKeyPackage() =>
       RustLib.instance.api.crateApiChatChatCoreLastResortKeyPackage(

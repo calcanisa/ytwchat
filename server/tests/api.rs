@@ -320,3 +320,59 @@ async fn websocket_delivery_signals_and_presence() {
     let closed = tokio::time::timeout(Duration::from_secs(2), wb.next()).await.unwrap();
     assert!(matches!(closed, None | Some(Ok(Message::Close(_))) | Some(Err(_))), "revoked device is disconnected");
 }
+
+async fn next_event(ws: &mut tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>, kind: &str) -> Value {
+    loop {
+        let frame = tokio::time::timeout(Duration::from_secs(3), ws.next()).await.expect("event in time").unwrap().unwrap();
+        if let Ok(text) = frame.to_text() {
+            let v: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+            if v["type"] == kind {
+                return v;
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn devices_for_encryption_groups() {
+    let s = spawn().await;
+    let a = s.register("ari").await;
+    let b = s.register("ben").await;
+    let c = s.register("cat").await;
+    s.post(&b, "/devices/current/key-packages", json!({ "key_packages": [STANDARD.encode("b1-kp")], "last_resort": STANDARD.encode("b1-last") })).await;
+    let b2 = s.login("ben").await;
+    let (_, conv) = s.post(&a, "/conversations", json!({ "kind": "direct", "member_ids": [b.user_id] })).await;
+    let cid = conv["id"].as_str().unwrap().to_string();
+
+    let (status, devices) = s.get(&a, &format!("/conversations/{cid}/devices")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(devices.as_array().unwrap().len(), 1, "only devices with keys can be added");
+    assert_eq!(devices[0]["device_id"], b.device_id.as_str());
+    let (status, _) = s.get(&c, &format!("/conversations/{cid}/devices")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (mut wa, _) = tokio_tungstenite::connect_async(&s.ws).await.unwrap();
+    wa.send(Message::Text(json!({ "type": "auth", "token": a.token }).to_string().into())).await.unwrap();
+    next_event(&mut wa, "ready").await;
+
+    s.post(&b2, "/devices/current/key-packages", json!({ "key_packages": [STANDARD.encode("b2-kp")], "last_resort": STANDARD.encode("b2-last") })).await;
+    let updated = next_event(&mut wa, "conversation.updated").await;
+    assert_eq!(updated["conversation_id"], cid.as_str());
+    let (_, devices) = s.get(&a, &format!("/conversations/{cid}/devices")).await;
+    assert_eq!(devices.as_array().unwrap().len(), 2);
+
+    let (status, claimed) = s.post(&a, &format!("/key-packages/{}/claim", b.user_id), json!({ "device_ids": [b2.device_id] })).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(claimed.as_array().unwrap().len(), 1);
+    assert_eq!(STANDARD.decode(claimed[0]["key_package"].as_str().unwrap()).unwrap(), b"b2-kp");
+    let (status, _) = s.post(&a, &format!("/key-packages/{}/claim", b.user_id), json!({ "device_ids": [] })).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let (_, count) = s.get(&b, "/devices/current/key-packages").await;
+    assert_eq!(count["available"], 1, "filtered claim leaves other devices untouched");
+
+    let res = s.http.delete(format!("{}/devices/{}", s.base, b2.device_id)).bearer_auth(&b.token).send().await.unwrap();
+    assert_eq!(res.status(), StatusCode::NO_CONTENT);
+    next_event(&mut wa, "conversation.updated").await;
+    let (_, devices) = s.get(&a, &format!("/conversations/{cid}/devices")).await;
+    assert_eq!(devices.as_array().unwrap().len(), 1, "revoked devices drop out");
+}

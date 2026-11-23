@@ -243,6 +243,7 @@ async fn logout(State(state): State<AppState>, auth: AuthUser) -> AppResult<axum
 }
 
 pub async fn revoke_device(state: &AppState, device_id: Uuid) -> AppResult<()> {
+    let owner: Option<(Uuid,)> = sqlx::query_as("SELECT user_id FROM devices WHERE id = $1").bind(device_id).fetch_optional(&state.db).await?;
     let mut tx = state.db.begin().await?;
     sqlx::query("UPDATE devices SET revoked_at = now(), push_token = NULL WHERE id = $1").bind(device_id).execute(&mut *tx).await?;
     sqlx::query("UPDATE sessions SET revoked_at = now() WHERE device_id = $1").bind(device_id).execute(&mut *tx).await?;
@@ -252,5 +253,8 @@ pub async fn revoke_device(state: &AppState, device_id: Uuid) -> AppResult<()> {
     sqlx::query("DELETE FROM message_deliveries WHERE device_id = $1").bind(device_id).execute(&mut *tx).await?;
     tx.commit().await?;
     state.hub.disconnect_device(device_id);
+    if let Some((user_id,)) = owner {
+        crate::routes::conversations::notify_user_conversations(state, user_id).await?;
+    }
     Ok(())
 }

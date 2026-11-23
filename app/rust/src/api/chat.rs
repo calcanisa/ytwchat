@@ -276,16 +276,34 @@ impl ChatCore {
         Ok(())
     }
 
-    pub fn join_from_welcome(&self, welcome: Vec<u8>) -> Result<String> {
+    pub fn join_from_welcome(&self, welcome: Vec<u8>, expected_conversation_id: String) -> Result<i64> {
         let inner = self.lock()?;
         let MlsMessageBodyIn::Welcome(welcome) = read_message(&welcome)? else {
             bail!("expected a welcome message");
         };
-        let staged = StagedWelcome::new_from_welcome(&inner.provider, &join_config(), welcome, None)
+        let expected = group_id(&expected_conversation_id)?;
+        let existing = MlsGroup::load(inner.provider.storage(), &expected).map_err(|e| anyhow!("storage error: {e}"))?;
+        let mut builder = StagedWelcome::build_from_welcome(&inner.provider, &join_config(), welcome)
             .map_err(|e| anyhow!("could not read the invitation: {e}"))?;
+        let offered = builder.processed_welcome().unverified_group_info();
+        if offered.group_id() != &expected {
+            bail!("invitation belongs to a different conversation");
+        }
+        if let Some(old) = &existing {
+            if old.epoch() >= offered.epoch() {
+                bail!("invitation is older than the conversation already on this device");
+            }
+            builder = builder.replace_old_group();
+        }
+        let staged = builder.build().map_err(|e| anyhow!("could not read the invitation: {e}"))?;
+        if staged.group_context().group_id() != &expected {
+            bail!("invitation belongs to a different conversation");
+        }
+        if let Some(mut old) = existing {
+            old.delete(inner.provider.storage()).map_err(|e| anyhow!("could not replace the old conversation: {e}"))?;
+        }
         let group = staged.into_group(&inner.provider).map_err(|e| anyhow!("could not join the conversation: {e}"))?;
-        let conversation_id = String::from_utf8(group.group_id().as_slice().to_vec()).context("group id is not a conversation id")?;
-        Ok(conversation_id)
+        Ok(group.epoch().as_u64() as i64)
     }
 
     pub fn encrypt(&self, conversation_id: String, plaintext: Vec<u8>) -> Result<Vec<u8>> {

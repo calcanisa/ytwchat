@@ -75,6 +75,14 @@ async fn delete_me(State(state): State<AppState>, auth: AuthUser, ip: ClientIp, 
     }
     let media: Vec<(Uuid,)> = sqlx::query_as("SELECT id FROM media WHERE uploader_user_id = $1").bind(auth.user_id).fetch_all(&state.db).await?;
     let devices: Vec<(Uuid,)> = sqlx::query_as("SELECT id FROM devices WHERE user_id = $1").bind(auth.user_id).fetch_all(&state.db).await?;
+    let watchers: Vec<(Uuid, Uuid)> = sqlx::query_as(
+        "SELECT DISTINCT o.conversation_id, o.user_id FROM conversation_members m
+         JOIN conversation_members o ON o.conversation_id = m.conversation_id
+         WHERE m.user_id = $1 AND o.user_id <> $1",
+    )
+    .bind(auth.user_id)
+    .fetch_all(&state.db)
+    .await?;
     log_event(&state, None, &ip, "account_deleted").await;
     sqlx::query("DELETE FROM users WHERE id = $1").bind(auth.user_id).execute(&state.db).await?;
     for (id,) in media {
@@ -83,6 +91,7 @@ async fn delete_me(State(state): State<AppState>, auth: AuthUser, ip: ClientIp, 
     for (id,) in devices {
         state.hub.disconnect_device(id);
     }
+    crate::routes::conversations::send_updates(&state, &watchers);
     Ok(StatusCode::NO_CONTENT)
 }
 

@@ -664,6 +664,7 @@ fn wire__crate__api__chat__ChatCore_join_from_welcome_impl(
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ChatCore>,
             >>::sse_decode(&mut deserializer);
             let api_welcome = <Vec<u8>>::sse_decode(&mut deserializer);
+            let api_expected_conversation_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -685,6 +686,7 @@ fn wire__crate__api__chat__ChatCore_join_from_welcome_impl(
                         let output_ok = crate::api::chat::ChatCore::join_from_welcome(
                             &*api_that_guard,
                             api_welcome,
+                            api_expected_conversation_id,
                         )?;
                         std::result::Result::Ok(output_ok)
                     })(),

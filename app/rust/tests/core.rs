@@ -39,8 +39,9 @@ fn group_messaging_across_users_and_devices() {
     assert_eq!(alice.core.confirm_commit(conv.clone()).unwrap(), 1);
 
     let welcome = bundle.welcome.unwrap();
-    assert_eq!(bob.core.join_from_welcome(welcome.clone()).unwrap(), conv);
-    assert_eq!(alice_laptop.core.join_from_welcome(welcome).unwrap(), conv);
+    assert_eq!(bob.core.join_from_welcome(welcome.clone(), conv.clone()).unwrap(), 1);
+    assert!(bob.core.join_from_welcome(welcome.clone(), conv.clone()).is_err(), "replayed invitation is rejected");
+    assert_eq!(alice_laptop.core.join_from_welcome(welcome, conv.clone()).unwrap(), 1);
     assert_eq!(bob.core.group_epoch(conv.clone()).unwrap(), 1);
     assert_eq!(bob.core.members(conv.clone()).unwrap().len(), 3);
 
@@ -85,7 +86,7 @@ fn concurrent_commits_resolve_by_server_order() {
     alice.core.create_group(conv.clone()).unwrap();
     let b = alice.core.add_members(conv.clone(), vec![kp(&bob)]).unwrap();
     alice.core.confirm_commit(conv.clone()).unwrap();
-    bob.core.join_from_welcome(b.welcome.unwrap()).unwrap();
+    bob.core.join_from_welcome(b.welcome.unwrap(), conv.clone()).unwrap();
 
     let alice_commit = alice.core.self_update(conv.clone()).unwrap();
     let bob_commit = bob.core.self_update(conv.clone()).unwrap();
@@ -111,7 +112,7 @@ fn state_survives_restart_and_rejects_other_accounts() {
     alice.core.create_group(conv.clone()).unwrap();
     let b = alice.core.add_members(conv.clone(), vec![kp(&bob)]).unwrap();
     alice.core.confirm_commit(conv.clone()).unwrap();
-    bob.core.join_from_welcome(b.welcome.unwrap()).unwrap();
+    bob.core.join_from_welcome(b.welcome.unwrap(), conv.clone()).unwrap();
     let fp = bob.core.fingerprint().unwrap();
 
     let bob_path = bob.path.clone();
@@ -136,8 +137,8 @@ fn removed_members_cannot_read_new_messages() {
     let b = alice.core.add_members(conv.clone(), vec![kp(&bob), kp(&cara)]).unwrap();
     alice.core.confirm_commit(conv.clone()).unwrap();
     let w = b.welcome.unwrap();
-    bob.core.join_from_welcome(w.clone()).unwrap();
-    cara.core.join_from_welcome(w).unwrap();
+    bob.core.join_from_welcome(w.clone(), conv.clone()).unwrap();
+    cara.core.join_from_welcome(w, conv.clone()).unwrap();
 
     let removal = alice.core.remove_members(conv.clone(), vec![DeviceRef { user_id: "bob".into(), device_id: "phone".into() }]).unwrap();
     alice.core.confirm_commit(conv.clone()).unwrap();
@@ -161,7 +162,7 @@ fn last_resort_key_package_is_reusable() {
         alice.core.create_group(conv.clone()).unwrap();
         let b = alice.core.add_members(conv.clone(), vec![DeviceKeyPackage { user_id: "bob".into(), device_id: "phone".into(), key_package: lr.clone() }]).unwrap();
         alice.core.confirm_commit(conv.clone()).unwrap();
-        assert_eq!(bob.core.join_from_welcome(b.welcome.unwrap()).unwrap(), conv);
+        assert_eq!(bob.core.join_from_welcome(b.welcome.unwrap(), conv.clone()).unwrap(), 1);
     }
 }
 
@@ -176,4 +177,41 @@ fn media_encryption_detects_tampering() {
     assert!(decrypt_media(bad, enc.key.clone(), enc.nonce.clone(), enc.sha256.clone()).is_err());
     let other = encrypt_media(data).unwrap();
     assert!(decrypt_media(enc.ciphertext, other.key, enc.nonce, enc.sha256).is_err());
+}
+
+#[test]
+fn readded_member_replaces_stale_group() {
+    let dir = TempDir::new().unwrap();
+    let alice = phone(&dir, "alice", "phone");
+    let bob = phone(&dir, "bob", "phone");
+    let conv = "conv-readd".to_string();
+    alice.core.create_group(conv.clone()).unwrap();
+    let b = alice.core.add_members(conv.clone(), vec![kp(&bob)]).unwrap();
+    alice.core.confirm_commit(conv.clone()).unwrap();
+    bob.core.join_from_welcome(b.welcome.unwrap(), conv.clone()).unwrap();
+
+    alice.core.remove_members(conv.clone(), vec![DeviceRef { user_id: "bob".into(), device_id: "phone".into() }]).unwrap();
+    alice.core.confirm_commit(conv.clone()).unwrap();
+    let again = alice.core.add_members(conv.clone(), vec![kp(&bob)]).unwrap();
+    alice.core.confirm_commit(conv.clone()).unwrap();
+    assert_eq!(bob.core.group_epoch(conv.clone()).unwrap(), 1);
+    assert_eq!(bob.core.join_from_welcome(again.welcome.unwrap(), conv.clone()).unwrap(), 3);
+    let ct = alice.core.encrypt(conv.clone(), b"welcome back".to_vec()).unwrap();
+    assert_eq!(text(bob.core.process(conv, ct).unwrap()).2, "welcome back");
+}
+
+#[test]
+fn invitation_must_match_the_conversation() {
+    let dir = TempDir::new().unwrap();
+    let alice = phone(&dir, "alice", "phone");
+    let bob = phone(&dir, "bob", "phone");
+    let lr = bob.core.last_resort_key_package().unwrap();
+    let conv = "conv-match".to_string();
+    alice.core.create_group(conv.clone()).unwrap();
+    let b = alice.core.add_members(conv.clone(), vec![DeviceKeyPackage { user_id: "bob".into(), device_id: "phone".into(), key_package: lr }]).unwrap();
+    alice.core.confirm_commit(conv.clone()).unwrap();
+    let w = b.welcome.unwrap();
+    assert!(bob.core.join_from_welcome(w.clone(), "conv-other".into()).is_err());
+    assert!(!bob.core.has_group("conv-other".into()).unwrap());
+    assert_eq!(bob.core.join_from_welcome(w, conv.clone()).unwrap(), 1);
 }

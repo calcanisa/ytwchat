@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     auth::AuthUser,
     error::{AppError, AppResult},
-    routes::auth::revoke_device,
+    routes::{auth::revoke_device, conversations::notify_user_conversations},
     state::AppState,
 };
 
@@ -110,10 +110,14 @@ async fn upload_key_packages(State(state): State<AppState>, auth: AuthUser, Json
     let packages: Vec<Vec<u8>> = body.key_packages.iter().map(|k| decode_kp(k)).collect::<AppResult<_>>()?;
     let last_resort = body.last_resort.as_deref().map(decode_kp).transpose()?;
     let mut tx = state.db.begin().await?;
-    let current: (i64,) = sqlx::query_as("SELECT count(*) FROM key_packages WHERE device_id = $1 AND NOT is_last_resort")
-        .bind(auth.device_id)
-        .fetch_one(&mut *tx)
-        .await?;
+    sqlx::query("SELECT id FROM devices WHERE id = $1 FOR UPDATE").bind(auth.device_id).execute(&mut *tx).await?;
+    let current: (i64, bool) = sqlx::query_as(
+        "SELECT count(*) FILTER (WHERE NOT is_last_resort), bool_or(is_last_resort) IS TRUE FROM key_packages WHERE device_id = $1",
+    )
+    .bind(auth.device_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    let fresh_device = current.0 == 0 && !current.1;
     if current.0 + packages.len() as i64 > MAX_KEY_PACKAGES {
         return Err(AppError::bad("key_package_limit", "This device already has enough key packages stored."));
     }
@@ -135,7 +139,11 @@ async fn upload_key_packages(State(state): State<AppState>, auth: AuthUser, Json
             .await?;
     }
     tx.commit().await?;
-    count_for(&state, auth.device_id).await.map(Json)
+    let out = count_for(&state, auth.device_id).await?;
+    if fresh_device && (out.available > 0 || out.has_last_resort) {
+        notify_user_conversations(&state, auth.user_id).await?;
+    }
+    Ok(Json(out))
 }
 
 async fn count_for(state: &AppState, device_id: Uuid) -> AppResult<CountOut> {
@@ -152,13 +160,22 @@ async fn key_package_count(State(state): State<AppState>, auth: AuthUser) -> App
     count_for(&state, auth.device_id).await.map(Json)
 }
 
+#[derive(Deserialize, Default)]
+struct ClaimIn {
+    device_ids: Option<Vec<Uuid>>,
+}
+
 #[derive(Serialize)]
 struct ClaimedOut {
     device_id: Uuid,
     key_package: String,
 }
 
-async fn claim(State(state): State<AppState>, auth: AuthUser, Path(user_id): Path<Uuid>) -> AppResult<Json<Vec<ClaimedOut>>> {
+async fn claim(State(state): State<AppState>, auth: AuthUser, Path(user_id): Path<Uuid>, body: Option<Json<ClaimIn>>) -> AppResult<Json<Vec<ClaimedOut>>> {
+    let only = body.map(|Json(b)| b).unwrap_or_default().device_ids;
+    if only.as_ref().is_some_and(|ids| ids.is_empty() || ids.len() > 64) {
+        return Err(AppError::bad("invalid_devices", "Name between 1 and 64 devices."));
+    }
     state.limiter.check(format!("claim:{}", auth.user_id), 120, Duration::from_secs(3600))?;
     let blocked: Option<(Uuid,)> = sqlx::query_as("SELECT user_id FROM blocks WHERE user_id = $1 AND blocked_user_id = $2")
         .bind(user_id)
@@ -171,10 +188,12 @@ async fn claim(State(state): State<AppState>, auth: AuthUser, Path(user_id): Pat
     let mut tx = state.db.begin().await?;
     let devices: Vec<(Uuid,)> = sqlx::query_as(
         "SELECT d.id FROM devices d JOIN users u ON u.id = d.user_id
-         WHERE d.user_id = $1 AND d.revoked_at IS NULL AND u.deleted_at IS NULL AND d.id <> $2",
+         WHERE d.user_id = $1 AND d.revoked_at IS NULL AND u.deleted_at IS NULL AND d.id <> $2
+           AND ($3::uuid[] IS NULL OR d.id = ANY($3))",
     )
     .bind(user_id)
     .bind(auth.device_id)
+    .bind(only)
     .fetch_all(&mut *tx)
     .await?;
     let mut out = Vec::new();
