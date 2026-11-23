@@ -68,7 +68,7 @@ fn server_cannot_swap_devices_in_key_packages() {
     alice.core.create_group(conv.clone()).unwrap();
     let forged = DeviceKeyPackage { user_id: "bob".into(), device_id: "phone".into(), key_package: mallory.core.generate_key_packages(1).unwrap().remove(0) };
     let err = alice.core.add_members(conv.clone(), vec![forged]).err().unwrap();
-    assert!(err.to_string().contains("does not belong"));
+    assert!(err.to_string().contains("none of the key packages could be verified"));
 
     let mut tampered = mallory.core.generate_key_packages(1).unwrap().remove(0);
     let last = tampered.len() - 1;
@@ -214,4 +214,21 @@ fn invitation_must_match_the_conversation() {
     assert!(bob.core.join_from_welcome(w.clone(), "conv-other".into()).is_err());
     assert!(!bob.core.has_group("conv-other".into()).unwrap());
     assert_eq!(bob.core.join_from_welcome(w, conv.clone()).unwrap(), 1);
+}
+
+#[test]
+fn bad_key_packages_are_skipped() {
+    let dir = TempDir::new().unwrap();
+    let alice = phone(&dir, "alice", "phone");
+    let bob = phone(&dir, "bob", "phone");
+    let cara = phone(&dir, "cara", "phone");
+    let conv = "conv-skip".to_string();
+    alice.core.create_group(conv.clone()).unwrap();
+    let forged = || DeviceKeyPackage { user_id: "bob".into(), ..kp(&cara) };
+    let junk = || DeviceKeyPackage { user_id: "dan".into(), device_id: "phone".into(), key_package: vec![1, 2, 3] };
+    assert!(alice.core.add_members(conv.clone(), vec![forged(), junk()]).is_err());
+    let b = alice.core.add_members(conv.clone(), vec![forged(), junk(), kp(&bob)]).unwrap();
+    assert_eq!(b.welcome_device_ids, vec!["phone"]);
+    alice.core.confirm_commit(conv.clone()).unwrap();
+    assert_eq!(alice.core.members(conv).unwrap().len(), 2);
 }

@@ -100,7 +100,7 @@ pub(crate) fn create_config() -> MlsGroupCreateConfig {
         .use_ratchet_tree_extension(true)
         .max_past_epochs(5)
         .padding_size(256)
-        .sender_ratchet_configuration(SenderRatchetConfiguration::new(32, 1000))
+        .sender_ratchet_configuration(SenderRatchetConfiguration::new(100, 1000))
         .build()
 }
 
@@ -109,7 +109,7 @@ pub(crate) fn join_config() -> MlsGroupJoinConfig {
         .use_ratchet_tree_extension(true)
         .max_past_epochs(5)
         .padding_size(256)
-        .sender_ratchet_configuration(SenderRatchetConfiguration::new(32, 1000))
+        .sender_ratchet_configuration(SenderRatchetConfiguration::new(100, 1000))
         .build()
 }
 
@@ -134,26 +134,39 @@ impl Inner {
         })
     }
 
+    fn validate_key_package(&self, item: &DeviceKeyPackage) -> Result<KeyPackage> {
+        let body = read_message(&item.key_package)?;
+        let MlsMessageBodyIn::KeyPackage(kp_in) = body else {
+            bail!("expected a key package");
+        };
+        let kp = kp_in
+            .validate(self.provider.crypto(), ProtocolVersion::Mls10)
+            .map_err(|_| anyhow!("key package signature is not valid"))?;
+        if kp.ciphersuite() != CIPHERSUITE {
+            bail!("key package uses an unsupported ciphersuite");
+        }
+        let (user, device) = parse_identity(kp.leaf_node().credential())?;
+        if user != item.user_id || device != item.device_id {
+            bail!("key package does not belong to the device the server named");
+        }
+        Ok(kp)
+    }
+
     pub(crate) fn validated_key_packages(&self, packages: &[DeviceKeyPackage]) -> Result<(Vec<KeyPackage>, Vec<String>)> {
         let mut out = Vec::with_capacity(packages.len());
         let mut devices = Vec::with_capacity(packages.len());
+        let mut seen = std::collections::HashSet::new();
         for item in packages {
-            let body = read_message(&item.key_package)?;
-            let MlsMessageBodyIn::KeyPackage(kp_in) = body else {
-                bail!("expected a key package");
-            };
-            let kp = kp_in
-                .validate(self.provider.crypto(), ProtocolVersion::Mls10)
-                .map_err(|_| anyhow!("key package signature is not valid"))?;
-            if kp.ciphersuite() != CIPHERSUITE {
-                bail!("key package uses an unsupported ciphersuite");
+            if let Ok(kp) = self.validate_key_package(item) {
+                if !seen.insert((item.user_id.clone(), item.device_id.clone())) {
+                    continue;
+                }
+                out.push(kp);
+                devices.push(item.device_id.clone());
             }
-            let (user, device) = parse_identity(kp.leaf_node().credential())?;
-            if user != item.user_id || device != item.device_id {
-                bail!("key package does not belong to the device the server named");
-            }
-            out.push(kp);
-            devices.push(device);
+        }
+        if out.is_empty() {
+            bail!("none of the key packages could be verified");
         }
         Ok((out, devices))
     }
