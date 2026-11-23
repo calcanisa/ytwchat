@@ -121,17 +121,26 @@ class SyncEngine {
     if (!_events.isClosed) _events.add(e);
   }
 
+  final Completer<void> _ready = Completer<void>();
+
+  Future<void> get ready => _ready.future;
+
   Future<void> start() async {
     if (_running) return;
     _running = true;
     await Directory(mediaDir).create(recursive: true);
+    _keyTimer = Timer.periodic(const Duration(hours: 1), (_) => maintainKeyPackages());
+    unawaited(_bootstrap());
+  }
+
+  Future<void> _bootstrap() async {
     await maintainKeyPackages();
     try {
       await _refreshAll();
     } on ApiException {
       _emit(const ConversationsChanged());
     }
-    _keyTimer = Timer.periodic(const Duration(hours: 1), (_) => maintainKeyPackages());
+    if (!_ready.isCompleted) _ready.complete();
     _connect();
   }
 
@@ -148,6 +157,7 @@ class SyncEngine {
     _ws = null;
     _connected = false;
     await _lock.run(() async {});
+    if (!_ready.isCompleted) _ready.complete();
     await _events.close();
   }
 

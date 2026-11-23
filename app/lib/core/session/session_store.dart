@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../api/models.dart';
 
 abstract class SecretStore {
   Future<String?> read(String key);
@@ -89,6 +92,8 @@ class Session {
 class SessionStore {
   static const _sessionKey = 'ytwchat.session';
   static const _dbKey = 'ytwchat.db_key';
+  static const _storageKey = 'ytwchat.storage_key';
+  static const _profileKey = 'ytwchat.profile';
 
   final SecretStore _store;
 
@@ -108,19 +113,40 @@ class SessionStore {
   Future<void> save(Session session) =>
       _store.write(_sessionKey, jsonEncode(session.toJson()));
 
-  Future<String> databaseKey() async {
-    final existing = await _store.read(_dbKey);
-    if (existing != null && existing.length == 64) return existing;
+  Future<String> _hexKey(String name, int bytes) async {
+    final existing = await _store.read(name);
+    if (existing != null && existing.length == bytes * 2) return existing;
     final random = Random.secure();
-    final key = List.generate(32, (_) => random.nextInt(256))
+    final key = List.generate(bytes, (_) => random.nextInt(256))
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
         .join();
-    await _store.write(_dbKey, key);
+    await _store.write(name, key);
     return key;
+  }
+
+  Future<String> databaseKey() => _hexKey(_dbKey, 32);
+
+  Future<Uint8List> storageKey() async {
+    final hex = await _hexKey(_storageKey, 64);
+    return Uint8List.fromList(List.generate(64, (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16)));
+  }
+
+  Future<void> saveProfile(Me me) => _store.write(_profileKey, jsonEncode(me.toJson()));
+
+  Future<Me?> loadProfile() async {
+    final raw = await _store.read(_profileKey);
+    if (raw == null) return null;
+    try {
+      return Me.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clear() async {
     await _store.delete(_sessionKey);
     await _store.delete(_dbKey);
+    await _store.delete(_storageKey);
+    await _store.delete(_profileKey);
   }
 }

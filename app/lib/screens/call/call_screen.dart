@@ -1,329 +1,205 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:provider/provider.dart';
-import '../../models/conversation_model.dart';
-import '../../services/websocket_service.dart';
+
+import '../../app/call_controller.dart';
 import '../../utils/theme.dart';
+import '../../widgets/avatar.dart';
 
 class CallScreen extends StatefulWidget {
-  final ConversationModel conversation;
-  final String remoteUserId;
-  final String remoteDisplayName;
-  final bool isVideo;
-  final bool isOutgoing;
-  final Map<String, dynamic>? incomingOffer;
-
-  const CallScreen({
-    super.key,
-    required this.conversation,
-    required this.remoteUserId,
-    required this.remoteDisplayName,
-    required this.isVideo,
-    required this.isOutgoing,
-    this.incomingOffer,
-  });
+  const CallScreen({super.key});
 
   @override
   State<CallScreen> createState() => _CallScreenState();
 }
 
 class _CallScreenState extends State<CallScreen> {
-  RTCPeerConnection? _pc;
-  MediaStream? _localStream;
-  MediaStream? _remoteStream;
-
-  final _localRenderer = RTCVideoRenderer();
-  final _remoteRenderer = RTCVideoRenderer();
-
-  bool _muted = false;
-  bool _cameraOff = false;
-  bool _connected = false;
-  bool _ringing = true;
-
-  StreamSubscription? _wsSub;
-
-  static const _iceServers = {
-    'iceServers': [
-      {'urls': 'stun:stun.l.google.com:19302'},
-      {'urls': 'stun:stun1.l.google.com:19302'},
-    ]
-  };
+  late final CallController _call;
+  Timer? _clock;
+  bool _closing = false;
 
   @override
   void initState() {
     super.initState();
-    _init();
-  }
-
-  Future<void> _init() async {
-    await _localRenderer.initialize();
-    await _remoteRenderer.initialize();
-    await _setupPeerConnection();
-    _listenWsEvents();
-    if (widget.isOutgoing) {
-      await _startCall();
-    } else if (widget.incomingOffer != null) {
-      await _answerCall(widget.incomingOffer!['sdp'] as String);
-    }
-  }
-
-  Future<void> _setupPeerConnection() async {
-    _pc = await createPeerConnection(_iceServers);
-
-    _localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': widget.isVideo ? {'facingMode': 'user'} : false,
+    _call = context.read<CallController>();
+    _call.addListener(_onChange);
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _call.phase == CallPhase.active) setState(() {});
     });
-
-    _localRenderer.srcObject = _localStream;
-
-    for (final track in _localStream!.getTracks()) {
-      _pc!.addTrack(track, _localStream!);
-    }
-
-    _pc!.onIceCandidate = (candidate) {
-      context.read<WebSocketService>().sendIceCandidate(
-            widget.remoteUserId,
-            widget.conversation.id,
-            candidate.toMap().toString(),
-          );
-    };
-
-    _pc!.onTrack = (event) {
-      if (event.streams.isNotEmpty) {
-        setState(() {
-          _remoteStream = event.streams[0];
-          _remoteRenderer.srcObject = _remoteStream;
-          _connected = true;
-          _ringing = false;
-        });
-      }
-    };
-  }
-
-  void _listenWsEvents() {
-    final ws = context.read<WebSocketService>();
-    _wsSub = ws.stream?.listen((msg) async {
-      switch (msg.event) {
-        case WsEvent.callAnswer:
-          final sdp = msg.data['sdp'] as String;
-          await _pc?.setRemoteDescription(RTCSessionDescription(sdp, 'answer'));
-          setState(() {
-            _connected = true;
-            _ringing = false;
-          });
-          break;
-
-        case WsEvent.callIceCandidate:
-          final candidateMap = msg.data['candidate'] as Map<String, dynamic>;
-          await _pc?.addCandidate(RTCIceCandidate(
-            candidateMap['candidate'] as String,
-            candidateMap['sdpMid'] as String?,
-            candidateMap['sdpMLineIndex'] as int?,
-          ));
-          break;
-
-        case WsEvent.callHangup:
-        case WsEvent.callRejected:
-          _hangup(remote: true);
-          break;
-
-        default:
-          break;
-      }
-    });
-  }
-
-  Future<void> _startCall() async {
-    final offer = await _pc!.createOffer();
-    await _pc!.setLocalDescription(offer);
-    context.read<WebSocketService>().sendCallOffer(
-          widget.remoteUserId,
-          widget.conversation.id,
-          offer.sdp!,
-        );
-  }
-
-  Future<void> _answerCall(String offerSdp) async {
-    await _pc!.setRemoteDescription(RTCSessionDescription(offerSdp, 'offer'));
-    final answer = await _pc!.createAnswer();
-    await _pc!.setLocalDescription(answer);
-    context.read<WebSocketService>().sendCallAnswer(
-          widget.remoteUserId,
-          widget.conversation.id,
-          answer.sdp!,
-        );
-    setState(() {
-      _connected = true;
-      _ringing = false;
-    });
-  }
-
-  void _hangup({bool remote = false}) {
-    if (!remote) {
-      context.read<WebSocketService>().sendCallHangup(
-            widget.remoteUserId,
-            widget.conversation.id,
-          );
-    }
-    _cleanup();
-    if (mounted) Navigator.pop(context);
-  }
-
-  void _cleanup() {
-    _wsSub?.cancel();
-    _localStream?.dispose();
-    _remoteStream?.dispose();
-    _pc?.close();
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
-  }
-
-  void _toggleMute() {
-    final audioTracks = _localStream?.getAudioTracks();
-    if (audioTracks != null) {
-      for (final track in audioTracks) {
-        track.enabled = _muted;
-      }
-    }
-    setState(() => _muted = !_muted);
-  }
-
-  void _toggleCamera() {
-    final videoTracks = _localStream?.getVideoTracks();
-    if (videoTracks != null) {
-      for (final track in videoTracks) {
-        track.enabled = _cameraOff;
-      }
-    }
-    setState(() => _cameraOff = !_cameraOff);
   }
 
   @override
   void dispose() {
-    _cleanup();
+    _call.removeListener(_onChange);
+    _clock?.cancel();
     super.dispose();
+  }
+
+  void _onChange() {
+    if (_call.phase == CallPhase.idle && !_closing && mounted) {
+      _closing = true;
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  String _status(CallController c) {
+    switch (c.phase) {
+      case CallPhase.outgoing:
+        return 'Calling...';
+      case CallPhase.incoming:
+        return c.video ? 'Incoming video call' : 'Incoming voice call';
+      case CallPhase.connecting:
+        return 'Connecting...';
+      case CallPhase.active:
+        final since = c.connectedAt;
+        if (since == null) return 'Connected';
+        final d = DateTime.now().difference(since);
+        return '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+      case CallPhase.ended:
+        return c.endReason ?? 'Call ended';
+      case CallPhase.idle:
+        return '';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          if (widget.isVideo && _connected)
-            RTCVideoView(_remoteRenderer,
-                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
-          else
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundColor: AppTheme.surfaceVariant,
-                    child: Text(
-                      widget.remoteDisplayName[0].toUpperCase(),
-                      style: const TextStyle(
-                          fontSize: 36, color: AppTheme.onSurface),
+    final c = context.watch<CallController>();
+    final name = c.peerName ?? '';
+    final showVideo = c.video && c.hasRemoteVideo && c.phase == CallPhase.active;
+    return PopScope(
+      canPop: c.phase == CallPhase.idle || c.phase == CallPhase.ended,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            if (showVideo)
+              Positioned.fill(
+                child: RTCVideoView(c.remoteRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover),
+              )
+            else
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InitialAvatar(name: name, radius: 48),
+                    const SizedBox(height: 16),
+                    Text(name, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Text(_status(c), style: const TextStyle(color: AppTheme.onSurfaceMuted)),
+                    const SizedBox(height: 8),
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock_outline, size: 12, color: AppTheme.onSurfaceMuted),
+                        SizedBox(width: 4),
+                        Text('End to end encrypted', style: TextStyle(color: AppTheme.onSurfaceMuted, fontSize: 12)),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(widget.remoteDisplayName,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Text(
-                    _ringing
-                        ? (widget.isOutgoing
-                            ? 'Calling...'
-                            : 'Incoming call...')
-                        : _connected
-                            ? (widget.isVideo ? 'Video call' : 'Voice call')
-                            : 'Connecting...',
-                    style: const TextStyle(color: AppTheme.onSurfaceMuted),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          if (widget.isVideo && _connected)
+            if (c.video && !c.cameraOff && c.phase != CallPhase.incoming && c.phase != CallPhase.ended)
+              Positioned(
+                top: 48,
+                right: 16,
+                width: 100,
+                height: 140,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: RTCVideoView(c.localRenderer, mirror: true, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover),
+                ),
+              ),
+            if (showVideo)
+              Positioned(
+                top: 56,
+                left: 16,
+                child: Text(_status(c), style: const TextStyle(color: Colors.white, fontSize: 14)),
+              ),
             Positioned(
-              top: 48,
-              right: 16,
-              width: 100,
-              height: 140,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: RTCVideoView(_localRenderer, mirror: true),
-              ),
+              bottom: 48,
+              left: 0,
+              right: 0,
+              child: c.phase == CallPhase.incoming ? _incoming(c) : _controls(c),
             ),
-          Positioned(
-            bottom: 48,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _CallButton(
-                  icon: _muted ? Icons.mic_off : Icons.mic,
-                  color: _muted ? AppTheme.error : AppTheme.surfaceVariant,
-                  onTap: _toggleMute,
-                ),
-                const SizedBox(width: 24),
-                _CallButton(
-                  icon: Icons.call_end,
-                  color: AppTheme.error,
-                  size: 64,
-                  onTap: _hangup,
-                ),
-                const SizedBox(width: 24),
-                if (widget.isVideo)
-                  _CallButton(
-                    icon: _cameraOff ? Icons.videocam_off : Icons.videocam,
-                    color:
-                        _cameraOff ? AppTheme.error : AppTheme.surfaceVariant,
-                    onTap: _toggleCamera,
-                  )
-                else
-                  _CallButton(
-                    icon: Icons.volume_up,
-                    color: AppTheme.surfaceVariant,
-                    onTap: () {},
-                  ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _incoming(CallController c) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _RoundButton(icon: Icons.call_end, color: AppTheme.error, size: 64, label: 'Decline', onTap: c.decline),
+        _RoundButton(icon: c.video ? Icons.videocam : Icons.call, color: AppTheme.online, size: 64, label: 'Answer', onTap: c.accept),
+      ],
+    );
+  }
+
+  Widget _controls(CallController c) {
+    final ended = c.phase == CallPhase.ended;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _RoundButton(
+          icon: c.muted ? Icons.mic_off : Icons.mic,
+          color: c.muted ? AppTheme.error : AppTheme.surfaceVariant,
+          label: c.muted ? 'Unmute' : 'Mute',
+          onTap: ended ? null : c.toggleMute,
+        ),
+        const SizedBox(width: 20),
+        _RoundButton(icon: Icons.call_end, color: AppTheme.error, size: 64, label: 'End', onTap: ended ? null : () => c.hangup()),
+        const SizedBox(width: 20),
+        if (c.video) ...[
+          _RoundButton(
+            icon: c.cameraOff ? Icons.videocam_off : Icons.videocam,
+            color: c.cameraOff ? AppTheme.error : AppTheme.surfaceVariant,
+            label: 'Camera',
+            onTap: ended ? null : c.toggleCamera,
+          ),
+          const SizedBox(width: 20),
+          _RoundButton(icon: Icons.cameraswitch_outlined, color: AppTheme.surfaceVariant, label: 'Flip', onTap: ended ? null : c.switchCamera),
+        ] else
+          _RoundButton(
+            icon: c.speaker ? Icons.volume_up : Icons.volume_down,
+            color: c.speaker ? AppTheme.primary : AppTheme.surfaceVariant,
+            label: 'Speaker',
+            onTap: ended ? null : c.toggleSpeaker,
+          ),
+      ],
     );
   }
 }
 
-class _CallButton extends StatelessWidget {
+class _RoundButton extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final String label;
+  final VoidCallback? onTap;
   final double size;
 
-  const _CallButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    this.size = 52,
-  });
+  const _RoundButton({required this.icon, required this.color, required this.label, required this.onTap, this.size = 52});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(icon, color: Colors.white, size: size * 0.45),
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Opacity(
+          opacity: onTap == null ? 0.5 : 1,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white, size: size * 0.45),
+          ),
+        ),
       ),
     );
   }

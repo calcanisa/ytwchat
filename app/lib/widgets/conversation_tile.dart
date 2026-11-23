@@ -1,54 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/conversation_model.dart';
+
+import '../core/store/local_db.dart';
 import '../utils/theme.dart';
 import 'avatar.dart';
 
 class ConversationTile extends StatelessWidget {
-  final ConversationModel conversation;
-  final String currentUserId;
+  final LocalConversation conversation;
+  final String me;
+  final bool online;
+  final bool typing;
   final VoidCallback onTap;
 
   const ConversationTile({
     super.key,
     required this.conversation,
-    required this.currentUserId,
+    required this.me,
+    required this.online,
+    required this.typing,
     required this.onTap,
   });
 
-  String _formatTime(DateTime dt) {
+  static String formatTime(DateTime dt) {
+    final local = dt.toLocal();
     final now = DateTime.now();
-    if (dt.day == now.day && dt.month == now.month && dt.year == now.year) {
-      return DateFormat('HH:mm').format(dt);
+    if (local.year == now.year && local.month == now.month && local.day == now.day) {
+      return DateFormat('HH:mm').format(local);
     }
-    if (now.difference(dt).inDays < 7) {
-      return DateFormat('EEE').format(dt);
-    }
-    return DateFormat('dd/MM/yy').format(dt);
+    if (now.difference(local).inDays < 7) return DateFormat('EEE').format(local);
+    return DateFormat('dd/MM/yy').format(local);
   }
 
-  String _lastMessagePreview() {
-    final msg = conversation.lastMessage;
-    if (msg == null) return '';
-    switch (msg.kind) {
-      case 'voice_note':
-        return '🎤 Voice note';
-      case 'image':
-        return '📷 Photo';
-      case 'video':
-        return '🎥 Video';
-      case 'file':
-        return '📎 File';
-      default:
-        return msg.content ?? '';
+  String _subtitle() {
+    if (typing) return 'typing...';
+    if (conversation.state == GroupState.left) return 'You are no longer in this chat';
+    final preview = conversation.lastPreview;
+    if (preview == null || preview.isEmpty) {
+      return conversation.state == GroupState.waiting ? 'Setting up encryption' : 'No messages yet';
     }
+    if (conversation.isGroup && conversation.lastSenderId != null) {
+      final who = conversation.lastSenderId == me
+          ? 'You'
+          : conversation.member(conversation.lastSenderId!)?.user.displayName;
+      if (who != null) return '$who: $preview';
+    }
+    return conversation.lastSenderId == me ? 'You: $preview' : preview;
   }
 
   @override
   Widget build(BuildContext context) {
-    final name = conversation.displayName(currentUserId);
-    final preview = _lastMessagePreview();
-    final hasUnread = conversation.unreadCount > 0;
+    final name = conversation.displayName(me);
+    final hasUnread = conversation.unread > 0;
+    final time = conversation.lastAt ?? conversation.lastActivityAt;
 
     return InkWell(
       onTap: onTap,
@@ -56,11 +59,7 @@ class ConversationTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            ConversationAvatar(
-              conversation: conversation,
-              currentUserId: currentUserId,
-              radius: 26,
-            ),
+            InitialAvatar(name: name, radius: 26, online: online, group: conversation.isGroup),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -72,23 +71,19 @@ class ConversationTile extends StatelessWidget {
                         child: Text(
                           name,
                           style: TextStyle(
-                            fontWeight:
-                                hasUnread ? FontWeight.w600 : FontWeight.w500,
+                            fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w500,
                             fontSize: 15,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (conversation.lastMessage != null)
-                        Text(
-                          _formatTime(conversation.lastMessage!.createdAt),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: hasUnread
-                                ? AppTheme.primary
-                                : AppTheme.onSurfaceMuted,
-                          ),
+                      Text(
+                        formatTime(time),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: hasUnread ? AppTheme.primary : AppTheme.onSurfaceMuted,
                         ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -96,34 +91,30 @@ class ConversationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          preview,
+                          _subtitle(),
                           style: TextStyle(
                             fontSize: 13,
-                            color: hasUnread
-                                ? AppTheme.onSurface
-                                : AppTheme.onSurfaceMuted,
-                            fontWeight:
-                                hasUnread ? FontWeight.w500 : FontWeight.normal,
+                            color: typing
+                                ? AppTheme.primary
+                                : hasUnread
+                                    ? AppTheme.onSurface
+                                    : AppTheme.onSurfaceMuted,
+                            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
                           ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (hasUnread)
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: const BoxDecoration(
                             color: AppTheme.primary,
                             borderRadius: BorderRadius.all(Radius.circular(10)),
                           ),
                           child: Text(
-                            conversation.unreadCount > 99
-                                ? '99+'
-                                : '${conversation.unreadCount}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600),
+                            conversation.unread > 99 ? '99+' : '${conversation.unread}',
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                           ),
                         ),
                     ],

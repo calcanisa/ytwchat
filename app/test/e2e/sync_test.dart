@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,6 +37,7 @@ class Client {
 }
 
 late Directory root;
+final storageKey = Uint8List.fromList(List.generate(64, (i) => (i * 31 + 7) % 256));
 final clients = <Client>[];
 
 Future<Client> connect(String username, {bool register = true}) async {
@@ -64,7 +63,12 @@ Future<Client> connect(String username, {bool register = true}) async {
   );
   await sessions.save(session);
   api.attach(session);
-  final core = ChatCore.open(dbPath: '${dir.path}/mls.db', userId: session.userId, deviceId: session.deviceId);
+  final core = ChatCore.open(
+    dbPath: '${dir.path}/mls.db',
+    userId: session.userId,
+    deviceId: session.deviceId,
+    storageKey: storageKey,
+  );
   final database = await databaseFactoryFfi.openDatabase(
     '${dir.path}/local.db',
     options: OpenDatabaseOptions(version: LocalDb.version, onCreate: LocalDb.onCreate, onConfigure: LocalDb.onConfigure),
@@ -80,6 +84,7 @@ Future<Client> connect(String username, {bool register = true}) async {
     mediaDir: '${dir.path}/media',
   );
   await engine.start();
+  await engine.ready;
   final client = Client(username, api, engine, db);
   clients.add(client);
   await until('$username connected', () async => engine.connected);

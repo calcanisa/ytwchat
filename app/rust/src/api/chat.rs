@@ -7,8 +7,8 @@ use openmls_sqlite_storage::{Connection, SqliteStorageProvider};
 use std::sync::Mutex;
 
 use crate::engine::{
-    capabilities, create_config, fingerprint_of, group_id, identity_string, join_config, parse_identity, read_message, Inner, JsonCodec, Provider,
-    CIPHERSUITE, MAX_KEY_PACKAGES_PER_CALL, MAX_PLAINTEXT,
+    capabilities, create_config, fingerprint_of, group_id, identity_string, join_config, parse_identity, read_message, Inner, SealedCodec, Provider,
+    seal, set_storage_key, unseal_with, CIPHERSUITE, KEY_CHECK, MAX_KEY_PACKAGES_PER_CALL, MAX_PLAINTEXT,
 };
 
 #[frb(opaque)]
@@ -67,9 +67,13 @@ impl Incoming {
 
 impl ChatCore {
     #[frb(sync)]
-    pub fn open(db_path: String, user_id: String, device_id: String) -> Result<ChatCore> {
+    pub fn open(db_path: String, user_id: String, device_id: String, storage_key: Vec<u8>) -> Result<ChatCore> {
         if user_id.is_empty() || device_id.is_empty() || user_id.contains(':') || device_id.contains(':') {
             bail!("invalid user or device id");
+        }
+        let storage_key = zeroize::Zeroizing::new(storage_key);
+        if storage_key.len() != 64 {
+            bail!("storage key must be 64 bytes");
         }
         let connection = Connection::open(&db_path).context("could not open the encryption database")?;
         connection
@@ -81,20 +85,25 @@ impl ChatCore {
                      id INTEGER PRIMARY KEY CHECK (id = 1),
                      user_id TEXT NOT NULL,
                      device_id TEXT NOT NULL,
-                     public_key BLOB NOT NULL
+                     public_key BLOB NOT NULL,
+                     key_check BLOB NOT NULL
                  );",
             )
             .context("could not prepare the encryption database")?;
-        let existing: Option<(String, String, Vec<u8>)> = connection
-            .query_row("SELECT user_id, device_id, public_key FROM ytw_identity WHERE id = 1", [], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        let existing: Option<(String, String, Vec<u8>, Vec<u8>)> = connection
+            .query_row("SELECT user_id, device_id, public_key, key_check FROM ytw_identity WHERE id = 1", [], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
             })
             .ok();
-        if let Some((u, d, _)) = &existing {
+        if let Some((u, d, _, check)) = &existing {
             if *u != user_id || *d != device_id {
                 bail!("this encryption database belongs to another device");
             }
+            if !unseal_with(&storage_key, check).is_some_and(|v| v.as_slice() == KEY_CHECK) {
+                bail!("the encryption database key does not match");
+            }
         }
+        set_storage_key(&storage_key)?;
 
         let new_signer = match &existing {
             Some(_) => None,
@@ -102,15 +111,15 @@ impl ChatCore {
                 let signer = SignatureKeyPair::new(CIPHERSUITE.signature_algorithm()).map_err(|_| anyhow!("could not create a signing key"))?;
                 connection
                     .execute(
-                        "INSERT INTO ytw_identity (id, user_id, device_id, public_key) VALUES (1, ?1, ?2, ?3)",
-                        (&user_id, &device_id, &signer.to_public_vec()),
+                        "INSERT INTO ytw_identity (id, user_id, device_id, public_key, key_check) VALUES (1, ?1, ?2, ?3, ?4)",
+                        (&user_id, &device_id, &signer.to_public_vec(), &seal(KEY_CHECK).map_err(|e| anyhow!("{e}"))?),
                     )
                     .context("could not save the device identity")?;
                 Some(signer)
             }
         };
 
-        let mut storage = SqliteStorageProvider::<JsonCodec, Connection>::new(connection);
+        let mut storage = SqliteStorageProvider::<SealedCodec, Connection>::new(connection);
         storage.run_migrations().map_err(|e| anyhow!("could not migrate the encryption database: {e}"))?;
         let provider = Provider { crypto: RustCrypto::default(), storage };
 
@@ -119,7 +128,7 @@ impl ChatCore {
                 signer.store(provider.storage()).map_err(|e| anyhow!("could not store the signing key: {e}"))?;
                 signer
             }
-            (None, Some((_, _, public_key))) => SignatureKeyPair::read(provider.storage(), public_key, CIPHERSUITE.signature_algorithm())
+            (None, Some((_, _, public_key, _))) => SignatureKeyPair::read(provider.storage(), public_key, CIPHERSUITE.signature_algorithm())
                 .ok_or_else(|| anyhow!("the device signing key is missing"))?,
             (None, None) => bail!("device identity could not be loaded"),
         };

@@ -11,9 +11,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ChatCore>>
 abstract class ChatCore implements RustOpaqueInterface {
-  Future<CommitBundle> addMembers(
-      {required String conversationId,
-      required List<DeviceKeyPackage> keyPackages});
+  Future<CommitBundle> addMembers({
+    required String conversationId,
+    required List<DeviceKeyPackage> keyPackages,
+  });
 
   Future<PlatformInt64> confirmCommit({required String conversationId});
 
@@ -23,8 +24,10 @@ abstract class ChatCore implements RustOpaqueInterface {
 
   Future<void> discardCommit({required String conversationId});
 
-  Future<Uint8List> encrypt(
-      {required String conversationId, required List<int> plaintext});
+  Future<Uint8List> encrypt({
+    required String conversationId,
+    required List<int> plaintext,
+  });
 
   String fingerprint();
 
@@ -36,25 +39,36 @@ abstract class ChatCore implements RustOpaqueInterface {
 
   DeviceRef identity();
 
-  Future<PlatformInt64> joinFromWelcome(
-      {required List<int> welcome, required String expectedConversationId});
+  Future<PlatformInt64> joinFromWelcome({
+    required List<int> welcome,
+    required String expectedConversationId,
+  });
 
   Future<Uint8List> lastResortKeyPackage();
 
   List<MemberInfo> members({required String conversationId});
 
-  static ChatCore open(
-          {required String dbPath,
-          required String userId,
-          required String deviceId}) =>
-      RustLib.instance.api.crateApiChatChatCoreOpen(
-          dbPath: dbPath, userId: userId, deviceId: deviceId);
+  static ChatCore open({
+    required String dbPath,
+    required String userId,
+    required String deviceId,
+    required List<int> storageKey,
+  }) => RustLib.instance.api.crateApiChatChatCoreOpen(
+    dbPath: dbPath,
+    userId: userId,
+    deviceId: deviceId,
+    storageKey: storageKey,
+  );
 
-  Future<Incoming> process(
-      {required String conversationId, required List<int> message});
+  Future<Incoming> process({
+    required String conversationId,
+    required List<int> message,
+  });
 
-  Future<CommitBundle> removeMembers(
-      {required String conversationId, required List<DeviceRef> devices});
+  Future<CommitBundle> removeMembers({
+    required String conversationId,
+    required List<DeviceRef> devices,
+  });
 
   Future<CommitBundle> selfUpdate({required String conversationId});
 }
@@ -118,10 +132,7 @@ class DeviceRef {
   final String userId;
   final String deviceId;
 
-  const DeviceRef({
-    required this.userId,
-    required this.deviceId,
-  });
+  const DeviceRef({required this.userId, required this.deviceId});
 
   @override
   int get hashCode => userId.hashCode ^ deviceId.hashCode;
@@ -174,13 +185,7 @@ class Incoming {
           removedSelf == other.removedSelf;
 }
 
-enum IncomingKind {
-  application,
-  commit,
-  proposal,
-  ignored,
-  ;
-}
+enum IncomingKind { application, commit, proposal, ignored }
 
 class MemberInfo {
   final String userId;

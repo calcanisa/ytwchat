@@ -74,6 +74,18 @@ class Me {
         ytwLinked: j['ytw_linked'] as bool? ?? false,
       );
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'username': username,
+        'display_name': displayName,
+        'email': email,
+        'email_verified': emailVerified,
+        'phone_e164': phone,
+        'phone_verified': phoneVerified,
+        'has_password': hasPassword,
+        'ytw_linked': ytwLinked,
+      };
+
   PublicUser get asPublic =>
       PublicUser(id: id, username: username, displayName: displayName);
 }

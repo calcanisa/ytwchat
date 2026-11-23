@@ -821,11 +821,16 @@ fn wire__crate__api__chat__ChatCore_open_impl(
             let api_db_path = <String>::sse_decode(&mut deserializer);
             let api_user_id = <String>::sse_decode(&mut deserializer);
             let api_device_id = <String>::sse_decode(&mut deserializer);
+            let api_storage_key = <Vec<u8>>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                 (move || {
-                    let output_ok =
-                        crate::api::chat::ChatCore::open(api_db_path, api_user_id, api_device_id)?;
+                    let output_ok = crate::api::chat::ChatCore::open(
+                        api_db_path,
+                        api_user_id,
+                        api_device_id,
+                        api_storage_key,
+                    )?;
                     std::result::Result::Ok(output_ok)
                 })(),
             )

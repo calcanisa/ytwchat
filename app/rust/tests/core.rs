@@ -9,9 +9,11 @@ struct Phone {
     path: String,
 }
 
+const KEY: [u8; 64] = [7u8; 64];
+
 fn phone(dir: &TempDir, user: &str, device: &str) -> Phone {
     let path = dir.path().join(format!("{user}-{device}.db")).to_string_lossy().to_string();
-    Phone { core: ChatCore::open(path.clone(), user.into(), device.into()).unwrap(), user: user.into(), device: device.into(), path }
+    Phone { core: ChatCore::open(path.clone(), user.into(), device.into(), KEY.to_vec()).unwrap(), user: user.into(), device: device.into(), path }
 }
 
 fn kp(p: &Phone) -> DeviceKeyPackage {
@@ -117,13 +119,21 @@ fn state_survives_restart_and_rejects_other_accounts() {
 
     let bob_path = bob.path.clone();
     drop(bob);
-    let bob = ChatCore::open(bob_path.clone(), "bob".into(), "phone".into()).unwrap();
+    let bob = ChatCore::open(bob_path.clone(), "bob".into(), "phone".into(), KEY.to_vec()).unwrap();
     assert_eq!(bob.fingerprint().unwrap(), fp, "same identity after restart");
     assert!(bob.has_group(conv.clone()).unwrap());
     let ct = alice.core.encrypt(conv.clone(), b"still there?".to_vec()).unwrap();
     assert_eq!(text(bob.process(conv, ct).unwrap()).2, "still there?");
 
-    assert!(ChatCore::open(bob_path, "eve".into(), "phone".into()).is_err(), "database is bound to one device");
+    assert!(ChatCore::open(bob_path.clone(), "eve".into(), "phone".into(), KEY.to_vec()).is_err(), "database is bound to one device");
+    assert!(ChatCore::open(bob_path.clone(), "bob".into(), "phone".into(), vec![9u8; 64]).is_err(), "wrong storage key is rejected");
+    drop(bob);
+    let mut raw = std::fs::read(&bob_path).unwrap();
+    if let Ok(wal) = std::fs::read(format!("{bob_path}-wal")) {
+        raw.extend(wal);
+    }
+    assert!(!raw.windows(9).any(|w| w == b"bob:phone"), "credentials are not stored in plain text");
+    assert!(!raw.windows(2).any(|w| w == b"{\""), "no stored value is readable JSON");
 }
 
 #[test]

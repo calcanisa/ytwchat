@@ -9,13 +9,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<EncryptedMedia> encryptMedia({required List<int> data}) =>
     RustLib.instance.api.crateApiMediaEncryptMedia(data: data);
 
-Future<Uint8List> decryptMedia(
-        {required List<int> ciphertext,
-        required List<int> key,
-        required List<int> nonce,
-        required List<int> sha256}) =>
-    RustLib.instance.api.crateApiMediaDecryptMedia(
-        ciphertext: ciphertext, key: key, nonce: nonce, sha256: sha256);
+Future<Uint8List> decryptMedia({
+  required List<int> ciphertext,
+  required List<int> key,
+  required List<int> nonce,
+  required List<int> sha256,
+}) => RustLib.instance.api.crateApiMediaDecryptMedia(
+  ciphertext: ciphertext,
+  key: key,
+  nonce: nonce,
+  sha256: sha256,
+);
 
 class EncryptedMedia {
   final Uint8List ciphertext;
