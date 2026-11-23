@@ -1,5 +1,5 @@
-name: converse
-description: Converse - real-time chat with voice notes and video calling
+name: ytwchat
+description: ytwchat, end-to-end encrypted messages, voice notes and calls.
 publish_to: none
 version: 1.0.0+1
 

@@ -1,6 +1,6 @@
 {
-    "name": "converse",
-    "short_name": "converse",
+    "name": "ytwchat",
+    "short_name": "ytwchat",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
