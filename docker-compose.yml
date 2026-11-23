@@ -1,0 +1,49 @@
+name: ytwchat
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ytwchat
+      POSTGRES_USER: ytwchat
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ytwchat -d ytwchat"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://ytwchat:${DB_PASSWORD}@db:5432/ytwchat
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://ytwchat.com}
+      MEDIA_MAX_MB: ${MEDIA_MAX_MB:-64}
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - media:/app/storage/media
+    ports:
+      - "127.0.0.1:${SERVER_PORT:-8101}:8001"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  db_data:
+  media:
